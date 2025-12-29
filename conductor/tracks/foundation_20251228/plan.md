@@ -6,11 +6,11 @@
 - [x] Task: Implement `config.py` for cache path and system settings. 8f5bb0d
 - [x] Task: Conductor - User Manual Verification 'Environment & Credentials' (Protocol in workflow.md) d2448ed
 
-## Phase 2: Coordinate & Data Infrastructure
+## Phase 2: Coordinate & Data Infrastructure [checkpoint: 68ce148]
 - [x] Task: Implement `coordinates.py` for UTM transformation and bounding box validation. f9e57a9
 - [x] Task: Implement base `DataProviderAdapter` class in `providers/base.py`. eb52b9c
 - [x] Task: Implement `cache.py` for tile-based disk caching. 312c000
-- [ ] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md) 68ce148
 
 ## Phase 3: SRTM & Elevation Fetching
 - [ ] Task: Write tests for `SRTMAdapter`.
