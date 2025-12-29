@@ -51,12 +51,17 @@ async def test_ee_fetch_logic_flow(mock_credentials, mock_cache, coordinate_mana
             
             mock_cache.exists.return_value = False
             
-            # Mock the GEE image and export logic
-            # We mock the ee modules to avoid actual initialization errors
-            with patch("ee.Image") as mock_image_cls:
+            # Mock the GEE collection and image logic
+            with patch("ee.ImageCollection") as mock_coll_cls:
                 with patch("ee.Geometry.Rectangle") as mock_rect_cls:
                     mock_image = MagicMock()
-                    mock_image_cls.return_value = mock_image
+                    mock_collection = MagicMock()
+                    
+                    mock_coll_cls.return_value = mock_collection
+                    mock_collection.filterDate.return_value = mock_collection
+                    mock_collection.size.return_value.getInfo.return_value = 1
+                    mock_collection.mosaic.return_value = mock_image
+                    
                     mock_image.clip.return_value = mock_image
                     mock_image.reproject.return_value = mock_image
                     
