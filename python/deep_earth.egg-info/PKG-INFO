@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: deep_earth
+Version: 0.1.0
+Summary: Multi-modal geospatial data synthesizer for Houdini
+Requires-Python: >=3.9
+Requires-Dist: earthengine-api>=0.1.370
+Requires-Dist: pyproj>=3.4
+Requires-Dist: shapely>=2.0
+Requires-Dist: rasterio>=1.3
+Requires-Dist: numpy>=1.24
+Requires-Dist: aiohttp>=3.8
+Requires-Dist: scikit-learn>=1.2
+Provides-Extra: test
+Requires-Dist: pytest>=7.0; extra == "test"
+Requires-Dist: pytest-cov>=4.0; extra == "test"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "test"

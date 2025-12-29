@@ -1,0 +1,10 @@
+pyproject.toml
+python/deep_earth/__init__.py
+python/deep_earth.egg-info/PKG-INFO
+python/deep_earth.egg-info/SOURCES.txt
+python/deep_earth.egg-info/dependency_links.txt
+python/deep_earth.egg-info/requires.txt
+python/deep_earth.egg-info/top_level.txt
+python/deep_earth/houdini/__init__.py
+python/deep_earth/providers/__init__.py
+tests/test_package.py
