@@ -1,0 +1,68 @@
+import pytest
+import ee
+from unittest.mock import patch, MagicMock
+from deep_earth.providers.earth_engine import EarthEngineAdapter
+from deep_earth.coordinates import CoordinateManager
+
+@pytest.fixture
+def mock_credentials():
+    mock = MagicMock()
+    mock.get_ee_service_account.return_value = "test@appspot.gserviceaccount.com"
+    mock.get_ee_key_file.return_value = "/tmp/key.json"
+    return mock
+
+@pytest.fixture
+def mock_cache():
+    return MagicMock()
+
+@pytest.fixture
+def coordinate_manager():
+    return CoordinateManager(lat_min=44.9, lat_max=45.1, lon_min=-93.1, lon_max=-92.9)
+
+def test_ee_adapter_init(mock_credentials, mock_cache):
+    # Mock ee.ServiceAccountCredentials and ee.Initialize
+    with patch("ee.ServiceAccountCredentials") as mock_sa:
+        with patch("ee.Initialize") as mock_init:
+            adapter = EarthEngineAdapter(mock_credentials, mock_cache)
+            assert adapter.credentials == mock_credentials
+            assert mock_sa.called
+            assert mock_init.called
+
+@pytest.mark.asyncio
+async def test_ee_fetch_cache_hit(mock_credentials, mock_cache, coordinate_manager):
+    with patch("ee.ServiceAccountCredentials"):
+        with patch("ee.Initialize"):
+            adapter = EarthEngineAdapter(mock_credentials, mock_cache)
+            
+            mock_cache.exists.return_value = True
+            mock_cache.get_path.return_value = "/tmp/cached_ee.tif"
+            
+            result_path = await adapter.fetch(coordinate_manager, resolution=10, year=2023)
+            
+            assert result_path == "/tmp/cached_ee.tif"
+            mock_cache.exists.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_ee_fetch_logic_flow(mock_credentials, mock_cache, coordinate_manager):
+    """Verifies that the fetch method calls the appropriate GEE API methods."""
+    with patch("ee.ServiceAccountCredentials"):
+        with patch("ee.Initialize"):
+            adapter = EarthEngineAdapter(mock_credentials, mock_cache)
+            
+            mock_cache.exists.return_value = False
+            
+            # Mock the GEE image and export logic
+            mock_image = MagicMock()
+            mock_collection = MagicMock()
+            mock_collection.filterDate.return_value.first.return_value = mock_image
+            mock_image.clip.return_value.reproject.return_value = mock_image
+            
+            with patch("ee.ImageCollection", return_value=mock_collection):
+                with patch("ee.Geometry.Rectangle") as mock_rect:
+                    # Mock the async export part which we'll implement
+                    with patch.object(adapter, "_export_and_poll", return_value="/tmp/exported.tif") as mock_export:
+                        result = await adapter.fetch(coordinate_manager, resolution=10, year=2023)
+                        
+                        assert result == "/tmp/exported.tif"
+                        assert mock_rect.called
+                        assert mock_export.called
