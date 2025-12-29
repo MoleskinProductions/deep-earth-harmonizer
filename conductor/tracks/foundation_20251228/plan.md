@@ -13,7 +13,7 @@
 - [x] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md) 68ce148
 
 ## Phase 3: SRTM & Elevation Fetching
-- [ ] Task: Write tests for `SRTMAdapter`.
+- [x] Task: Write tests for `SRTMAdapter`. 2e16780
 - [ ] Task: Implement `providers/srtm.py` using `aiohttp` for OpenTopography REST API.
 - [ ] Task: Verify mosaic and reprojection of SRTM tiles.
 - [ ] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md)
