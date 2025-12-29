@@ -18,11 +18,11 @@
 - [x] Task: Verify mosaic and reprojection of SRTM tiles. ea19947
 - [x] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md) 693a8ea
 
-## Phase 4: GEE Embeddings Integration
+## Phase 4: GEE Embeddings Integration [checkpoint: 74bbc2c]
 - [x] Task: Write tests for `EarthEngineAdapter`. ad37b44
 - [x] Task: Implement `providers/earth_engine.py` using the `earthengine-api`. 5468c83
 - [x] Task: Implement async export/polling logic for GEE embeddings. cd699b8
-- [ ] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md) 74bbc2c
 
 ## Phase 5: Harmonization & Houdini SOP
 - [ ] Task: Implement `harmonize.py` for grid resampling using `rasterio` and `numpy`.
