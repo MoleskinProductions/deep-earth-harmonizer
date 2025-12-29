@@ -7,7 +7,7 @@
 - [x] Task: Conductor - User Manual Verification 'Environment & Credentials' (Protocol in workflow.md) d2448ed
 
 ## Phase 2: Coordinate & Data Infrastructure
-- [ ] Task: Implement `coordinates.py` for UTM transformation and bounding box validation.
+- [x] Task: Implement `coordinates.py` for UTM transformation and bounding box validation. f9e57a9
 - [ ] Task: Implement base `DataProviderAdapter` class in `providers/base.py`.
 - [ ] Task: Implement `cache.py` for tile-based disk caching.
 - [ ] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md)
