@@ -1,7 +1,7 @@
 # Track Plan: Foundation - Async Fetching and Harmonization
 
 ## Phase 1: Environment & Credentials
-- [ ] Task: Set up Python package structure (`python/deep_earth/`) and basic dependencies.
+- [x] Task: Set up Python package structure (`python/deep_earth/`) and basic dependencies. 96932e3
 - [ ] Task: Implement `credentials.py` for handling OpenTopography and GEE secrets.
 - [ ] Task: Implement `config.py` for cache path and system settings.
 - [ ] Task: Conductor - User Manual Verification 'Environment & Credentials' (Protocol in workflow.md)
