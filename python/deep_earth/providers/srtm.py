@@ -8,7 +8,7 @@ class SRTMAdapter(DataProviderAdapter):
     def __init__(self, credentials, cache):
         self.credentials = credentials
         self.cache = cache
-        self.api_url = "https://portal.opentopography.org/api/raster"
+        self.api_url = "https://portal.opentopography.org/API/globaldem"
 
     def get_cache_key(self, bbox, resolution):
         return f"srtm_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}"
