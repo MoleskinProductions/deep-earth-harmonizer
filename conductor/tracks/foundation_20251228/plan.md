@@ -15,7 +15,7 @@
 ## Phase 3: SRTM & Elevation Fetching
 - [x] Task: Write tests for `SRTMAdapter`. 2e16780
 - [x] Task: Implement `providers/srtm.py` using `aiohttp` for OpenTopography REST API. fd57e67
-- [ ] Task: Verify mosaic and reprojection of SRTM tiles.
+- [x] Task: Verify mosaic and reprojection of SRTM tiles. ea19947
 - [ ] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md)
 
 ## Phase 4: GEE Embeddings Integration
