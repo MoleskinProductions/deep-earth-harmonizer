@@ -52,17 +52,18 @@ async def test_ee_fetch_logic_flow(mock_credentials, mock_cache, coordinate_mana
             mock_cache.exists.return_value = False
             
             # Mock the GEE image and export logic
-            mock_image = MagicMock()
-            mock_collection = MagicMock()
-            mock_collection.filterDate.return_value.first.return_value = mock_image
-            mock_image.clip.return_value.reproject.return_value = mock_image
-            
-            with patch("ee.ImageCollection", return_value=mock_collection):
-                with patch("ee.Geometry.Rectangle") as mock_rect:
+            # We mock the ee modules to avoid actual initialization errors
+            with patch("ee.Image") as mock_image_cls:
+                with patch("ee.Geometry.Rectangle") as mock_rect_cls:
+                    mock_image = MagicMock()
+                    mock_image_cls.return_value = mock_image
+                    mock_image.clip.return_value = mock_image
+                    mock_image.reproject.return_value = mock_image
+                    
                     # Mock the async export part which we'll implement
                     with patch.object(adapter, "_export_and_poll", return_value="/tmp/exported.tif") as mock_export:
                         result = await adapter.fetch(coordinate_manager, resolution=10, year=2023)
                         
                         assert result == "/tmp/exported.tif"
-                        assert mock_rect.called
+                        assert mock_rect_cls.called
                         assert mock_export.called
