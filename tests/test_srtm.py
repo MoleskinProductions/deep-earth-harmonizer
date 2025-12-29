@@ -1,6 +1,7 @@
 import pytest
 import aiohttp
 import numpy as np
+import rasterio
 from unittest.mock import AsyncMock, patch, MagicMock
 from deep_earth.providers.srtm import SRTMAdapter
 from deep_earth.coordinates import CoordinateManager
@@ -83,15 +84,19 @@ async def test_srtm_fetch_failure(mock_credentials, mock_cache, coordinate_manag
         with pytest.raises(Exception, match="Failed to fetch SRTM"):
             await adapter.fetch(coordinate_manager, resolution=30)
 
-def test_srtm_transform_to_grid(mock_credentials, mock_cache):
+def test_srtm_transform_to_grid_reprojection(mock_credentials, mock_cache, coordinate_manager, tmp_path):
     adapter = SRTMAdapter(mock_credentials, mock_cache)
     
-    # Mock rasterio
-    mock_src = MagicMock()
-    mock_src.read.return_value = np.zeros((10, 10))
+    # Create a dummy GeoTIFF file
+    test_tif = tmp_path / "test.tif"
+    data = np.zeros((10, 10), dtype=np.int16)
+    with rasterio.open(
+        test_tif, 'w',
+        driver='GTiff', height=10, width=10, count=1, dtype='int16',
+        crs='EPSG:4326', transform=rasterio.transform.from_bounds(-93.1, 44.9, -92.9, 45.1, 10, 10)
+    ) as dst:
+        dst.write(data, 1)
     
-    with patch("rasterio.open", return_value=mock_src):
-        mock_src.__enter__.return_value = mock_src
-        result = adapter.transform_to_grid("dummy.tif", None)
-        assert isinstance(result, np.ndarray)
-        assert result.shape == (10, 10)
+    result = adapter.transform_to_grid(str(test_tif), coordinate_manager)
+    assert isinstance(result, np.ndarray)
+    assert result.shape != (0, 0)

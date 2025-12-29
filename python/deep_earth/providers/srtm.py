@@ -1,7 +1,7 @@
 import aiohttp
 import numpy as np
 import rasterio
-from io import BytesIO
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 from .base import DataProviderAdapter
 
 class SRTMAdapter(DataProviderAdapter):
@@ -42,9 +42,32 @@ class SRTMAdapter(DataProviderAdapter):
                     error_text = await response.text()
                     raise Exception(f"Failed to fetch SRTM: {response.status} - {error_text}")
 
-    def transform_to_grid(self, data_path, target_grid):
-        """Loads the GeoTIFF and resamples it to the target grid."""
+    def transform_to_grid(self, data_path, coordinate_manager):
+        """Loads the GeoTIFF and reprojects it to the UTM grid defined by coordinate_manager."""
+        dst_crs = f"EPSG:{coordinate_manager.utm_epsg}"
+        
         with rasterio.open(data_path) as src:
-            # Basic implementation for now: read first band
-            # In Phase 5 we will add sophisticated harmonization
-            return src.read(1)
+            transform, width, height = calculate_default_transform(
+                src.crs, dst_crs, src.width, src.height, *src.bounds
+            )
+            kwargs = src.meta.copy()
+            kwargs.update({
+                'crs': dst_crs,
+                'transform': transform,
+                'width': width,
+                'height': height
+            })
+
+            destination = np.zeros((height, width), src.dtypes[0])
+
+            reproject(
+                source=rasterio.band(src, 1),
+                destination=destination,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=transform,
+                dst_crs=dst_crs,
+                resampling=Resampling.bilinear
+            )
+            
+            return destination
