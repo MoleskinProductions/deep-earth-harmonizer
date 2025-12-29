@@ -3,7 +3,7 @@
 ## Phase 1: Environment & Credentials
 - [x] Task: Set up Python package structure (`python/deep_earth/`) and basic dependencies. 96932e3
 - [x] Task: Implement `credentials.py` for handling OpenTopography and GEE secrets. 37efde7
-- [ ] Task: Implement `config.py` for cache path and system settings.
+- [x] Task: Implement `config.py` for cache path and system settings. 8f5bb0d
 - [ ] Task: Conductor - User Manual Verification 'Environment & Credentials' (Protocol in workflow.md)
 
 ## Phase 2: Coordinate & Data Infrastructure
