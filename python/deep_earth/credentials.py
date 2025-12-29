@@ -4,9 +4,9 @@ import json
 class CredentialsManager:
     def __init__(self, path=None):
         if path is None:
-            # Default location based on Houdini user pref dir (mocking for non-houdini env)
-            default = "/home/mk2/dev/planet_embeddings/python"
-            path = os.path.join(default, "deep_earth", "credentials.json")
+            # Default location based on Houdini user pref dir
+            houdini_user_pref = os.environ.get("HOUDINI_USER_PREF_DIR", os.path.expanduser("~/.houdini"))
+            path = os.path.join(houdini_user_pref, "deep_earth", "credentials.json")
         
         self.path = path
         if not os.path.exists(self.path):
