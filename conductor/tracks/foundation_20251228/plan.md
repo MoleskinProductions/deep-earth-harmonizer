@@ -27,5 +27,5 @@
 ## Phase 5: Harmonization & Houdini SOP
 - [x] Task: Implement `harmonize.py` for grid resampling using `rasterio` and `numpy`. a2b1003
 - [x] Task: Create a basic Houdini HDA shell with a Python SOP. 6229ba0
-- [ ] Task: Implement the "Hyper-Point" attribute injection logic in `houdini/geometry.py`.
+- [x] Task: Implement the "Hyper-Point" attribute injection logic in `houdini/geometry.py`. adca284
 - [ ] Task: Conductor - User Manual Verification 'Harmonization & Houdini SOP' (Protocol in workflow.md)
