@@ -19,7 +19,7 @@
 - [x] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md) 693a8ea
 
 ## Phase 4: GEE Embeddings Integration
-- [ ] Task: Write tests for `EarthEngineAdapter`.
+- [x] Task: Write tests for `EarthEngineAdapter`. ad37b44
 - [ ] Task: Implement `providers/earth_engine.py` using the `earthengine-api`.
 - [ ] Task: Implement async export/polling logic for GEE embeddings.
 - [ ] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md)
