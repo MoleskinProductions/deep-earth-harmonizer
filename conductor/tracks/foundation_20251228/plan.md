@@ -21,7 +21,7 @@
 ## Phase 4: GEE Embeddings Integration
 - [x] Task: Write tests for `EarthEngineAdapter`. ad37b44
 - [x] Task: Implement `providers/earth_engine.py` using the `earthengine-api`. 5468c83
-- [ ] Task: Implement async export/polling logic for GEE embeddings.
+- [x] Task: Implement async export/polling logic for GEE embeddings. cd699b8
 - [ ] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md)
 
 ## Phase 5: Harmonization & Houdini SOP
