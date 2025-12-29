@@ -9,7 +9,7 @@
 ## Phase 2: Coordinate & Data Infrastructure
 - [x] Task: Implement `coordinates.py` for UTM transformation and bounding box validation. f9e57a9
 - [x] Task: Implement base `DataProviderAdapter` class in `providers/base.py`. eb52b9c
-- [ ] Task: Implement `cache.py` for tile-based disk caching.
+- [x] Task: Implement `cache.py` for tile-based disk caching. 312c000
 - [ ] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md)
 
 ## Phase 3: SRTM & Elevation Fetching
