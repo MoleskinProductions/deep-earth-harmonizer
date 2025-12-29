@@ -24,8 +24,8 @@
 - [x] Task: Implement async export/polling logic for GEE embeddings. cd699b8
 - [x] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md) 74bbc2c
 
-## Phase 5: Harmonization & Houdini SOP
+## Phase 5: Harmonization & Houdini SOP [checkpoint: b5c16df]
 - [x] Task: Implement `harmonize.py` for grid resampling using `rasterio` and `numpy`. a2b1003
 - [x] Task: Create a basic Houdini HDA shell with a Python SOP. 6229ba0
 - [x] Task: Implement the "Hyper-Point" attribute injection logic in `houdini/geometry.py`. adca284
-- [ ] Task: Conductor - User Manual Verification 'Harmonization & Houdini SOP' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Harmonization & Houdini SOP' (Protocol in workflow.md) b5c16df
