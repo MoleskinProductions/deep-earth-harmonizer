@@ -12,11 +12,11 @@
 - [x] Task: Implement `cache.py` for tile-based disk caching. 312c000
 - [x] Task: Conductor - User Manual Verification 'Coordinate & Data Infrastructure' (Protocol in workflow.md) 68ce148
 
-## Phase 3: SRTM & Elevation Fetching
+## Phase 3: SRTM & Elevation Fetching [checkpoint: 693a8ea]
 - [x] Task: Write tests for `SRTMAdapter`. 2e16780
 - [x] Task: Implement `providers/srtm.py` using `aiohttp` for OpenTopography REST API. fd57e67
 - [x] Task: Verify mosaic and reprojection of SRTM tiles. ea19947
-- [ ] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'SRTM & Elevation Fetching' (Protocol in workflow.md) 693a8ea
 
 ## Phase 4: GEE Embeddings Integration
 - [ ] Task: Write tests for `EarthEngineAdapter`.
