@@ -25,7 +25,7 @@
 - [x] Task: Conductor - User Manual Verification 'GEE Embeddings Integration' (Protocol in workflow.md) 74bbc2c
 
 ## Phase 5: Harmonization & Houdini SOP
-- [ ] Task: Implement `harmonize.py` for grid resampling using `rasterio` and `numpy`.
+- [x] Task: Implement `harmonize.py` for grid resampling using `rasterio` and `numpy`. a2b1003
 - [ ] Task: Create a basic Houdini HDA shell with a Python SOP.
 - [ ] Task: Implement the "Hyper-Point" attribute injection logic in `houdini/geometry.py`.
 - [ ] Task: Conductor - User Manual Verification 'Harmonization & Houdini SOP' (Protocol in workflow.md)
