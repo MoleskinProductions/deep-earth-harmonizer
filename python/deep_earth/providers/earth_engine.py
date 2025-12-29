@@ -3,6 +3,7 @@ import os
 import asyncio
 import numpy as np
 import rasterio
+import aiohttp
 from .base import DataProviderAdapter
 
 class EarthEngineAdapter(DataProviderAdapter):
@@ -25,7 +26,8 @@ class EarthEngineAdapter(DataProviderAdapter):
 
     def validate_credentials(self):
         try:
-            ee.Image("projects/google/assets/experimental/embeddings/v1_satellite/2023").getInfo()
+            # Check for a known asset
+            ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").limit(1).getInfo()
             return True
         except:
             return False
@@ -40,11 +42,15 @@ class EarthEngineAdapter(DataProviderAdapter):
         # Define geometry
         region = ee.Geometry.Rectangle([bbox.lon_min, bbox.lat_min, bbox.lon_max, bbox.lat_max])
         
-        # Load embedding image
-        # Note: In a real implementation, we'd select the correct year from a collection
-        # For now, using the path provided in the plan
-        img_path = f"projects/google/assets/experimental/embeddings/v1_satellite/{year}"
-        image = ee.Image(img_path).clip(region)
+        # Load embedding collection and filter by year
+        start_date = f"{year}-01-01"
+        end_date = f"{year}-12-31"
+        collection = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterDate(start_date, end_date)
+        
+        if collection.size().getInfo() == 0:
+            raise ValueError(f"No embeddings found for year {year}")
+            
+        image = collection.mosaic().clip(region)
         
         # Reproject to UTM
         dst_crs = f"EPSG:{bbox.utm_epsg}"
@@ -54,10 +60,26 @@ class EarthEngineAdapter(DataProviderAdapter):
         return await self._export_and_poll(image, region, cache_key)
 
     async def _export_and_poll(self, image, region, cache_key):
-        """Placeholder for GEE export logic. 
-        Will implement actual export/polling in the next task."""
-        # For now, we'll raise an error to signify it's not yet complete
-        raise NotImplementedError("Async export/polling not yet implemented")
+        """Exports the image to a download URL and polls for completion."""
+        # Get download URL (this is a direct download for small regions)
+        # For larger regions, we'd use ee.batch.Export.image.toDrive or toCloudStorage
+        try:
+            url = image.getDownloadURL({
+                'scale': image.projection().nominalScale().getInfo(),
+                'crs': image.projection().crs().getInfo(),
+                'format': 'GeoTIFF'
+            })
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.read()
+                        return self.cache.save(cache_key, data, category="embeddings")
+                    else:
+                        error_text = await response.text()
+                        raise Exception(f"Failed to download GEE export: {response.status} - {error_text}")
+        except Exception as e:
+            raise Exception(f"GEE Export failed: {e}")
 
     def transform_to_grid(self, data_path, coordinate_manager):
         """Loads the multi-band GeoTIFF and returns a NumPy array."""
