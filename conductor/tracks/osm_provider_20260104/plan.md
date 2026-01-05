@@ -22,7 +22,7 @@
 - [x] Task: Conductor - User Manual Verification 'Rasterization Engine' (Protocol in workflow.md)
 
 ## Phase 4: Integration & Harmonization [checkpoint: pending]
-- [ ] Task: Write tests for integration within the main `Harmonizer` class.
-- [ ] Task: Update `harmonize.py` to include OSM data in the master grid construction.
-- [ ] Task: Verify end-to-end flow from bounding box to multi-layer attribute grid.
+- [x] Task: Write tests for integration within the main `Harmonizer` class. f6c172e
+- [x] Task: Update `harmonize.py` to include OSM data in the master grid construction. f6c172e
+- [x] Task: Verify end-to-end flow from bounding box to multi-layer attribute grid. f6c172e
 - [ ] Task: Conductor - User Manual Verification 'Integration & Harmonization' (Protocol in workflow.md)
