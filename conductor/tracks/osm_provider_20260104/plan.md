@@ -4,8 +4,8 @@
 - [x] Task: Create `providers/osm.py` with `OverpassAdapter` shell and basic configuration. df1ef47
 - [x] Task: Write tests for Overpass QL query generation and URL management. aa3d7b8
 - [x] Task: Implement `OverpassAdapter._build_query` and API endpoint rotation logic. 91d0702
-- [ ] Task: Write tests for async data fetching and raw response caching.
-- [ ] Task: Implement `OverpassAdapter.fetch` (acquisition of raw JSON).
+- [x] Task: Write tests for async data fetching and raw response caching. 9fbc436
+- [x] Task: Implement `OverpassAdapter.fetch` (acquisition of raw JSON). 9fbc436
 - [ ] Task: Conductor - User Manual Verification 'Foundation & API Acquisition' (Protocol in workflow.md)
 
 ## Phase 2: Vector Parsing & Processing [checkpoint: pending]
