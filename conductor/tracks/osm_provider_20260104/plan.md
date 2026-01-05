@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation & API Acquisition [checkpoint: pending]
 - [x] Task: Create `providers/osm.py` with `OverpassAdapter` shell and basic configuration. df1ef47
-- [ ] Task: Write tests for Overpass QL query generation and URL management.
+- [x] Task: Write tests for Overpass QL query generation and URL management. aa3d7b8
 - [ ] Task: Implement `OverpassAdapter._build_query` and API endpoint rotation logic.
 - [ ] Task: Write tests for async data fetching and raw response caching.
 - [ ] Task: Implement `OverpassAdapter.fetch` (acquisition of raw JSON).
