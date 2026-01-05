@@ -1,5 +1,6 @@
 import numpy as np
 import rasterio
+import math
 from rasterio.warp import reproject, Resampling
 
 class Harmonizer:
@@ -18,6 +19,8 @@ class Harmonizer:
             self.x_min, self.y_min, self.x_max, self.y_max, self.width, self.height
         )
         self.dst_crs = f"EPSG:{self.cm.utm_epsg}"
+        
+        self.layers = {}
 
     def resample(self, src_path, bands=1):
         """Resamples the given source GeoTIFF to the master grid."""
@@ -43,4 +46,12 @@ class Harmonizer:
             
             return destination
 
-import math # Needed for ceil
+    def add_layers(self, layers_dict):
+        """
+        Adds multiple layers to the harmonizer.
+        Each layer must be a NumPy array with (height, width) matching the master grid.
+        """
+        for name, data in layers_dict.items():
+            if data.shape != (self.height, self.width):
+                raise ValueError(f"Layer dimensions {data.shape} do not match master grid {(self.height, self.width)}")
+            self.layers[name] = data
