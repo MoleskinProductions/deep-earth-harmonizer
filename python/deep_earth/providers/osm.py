@@ -2,6 +2,7 @@ import hashlib
 import json
 import aiohttp
 from typing import Any
+from shapely.geometry import LineString, Polygon, Point
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
@@ -43,6 +44,7 @@ class OverpassAdapter(DataProviderAdapter):
         min_lat, min_lon, max_lat, max_lon = bbox
         bbox_str = f"{min_lat},{min_lon},{max_lat},{max_lon}"
         
+        # Using 'out geom' to get geometry directly in ways/relations
         query = f"""
         [out:json][timeout:25];
         (
@@ -55,15 +57,61 @@ class OverpassAdapter(DataProviderAdapter):
           way["natural"]({bbox_str});
           relation["natural"]({bbox_str});
         );
-        out body;
-        >;
-        out skel qt;
+        out geom;
         """
         return query.strip()
 
+    def _parse_elements(self, elements: list[dict]) -> list[dict]:
+        """
+        Parse Overpass JSON elements into Shapely geometries and categorized features.
+        """
+        features = []
+        for el in elements:
+            tags = el.get("tags", {})
+            geom = el.get("geometry", [])
+            if not geom:
+                continue
+            
+            # Convert geometry to Shapely coords (lon, lat)
+            coords = [(p["lon"], p["lat"]) for p in geom]
+            
+            feature_type = "unknown"
+            shape = None
+            
+            if "highway" in tags:
+                feature_type = "road"
+                shape = LineString(coords)
+            elif "waterway" in tags:
+                feature_type = "waterway"
+                shape = LineString(coords)
+            elif "building" in tags:
+                feature_type = "building"
+                shape = Polygon(coords) if len(coords) >= 3 else Point(coords[0])
+                if "height" in tags:
+                    try:
+                        tags["height"] = float(tags["height"])
+                    except (ValueError, TypeError):
+                        pass
+            elif "landuse" in tags:
+                feature_type = "landuse"
+                shape = Polygon(coords) if len(coords) >= 3 else Point(coords[0])
+            elif "natural" in tags:
+                feature_type = "natural"
+                shape = Polygon(coords) if len(coords) >= 3 else Point(coords[0])
+            else:
+                continue # Skip unknown
+            
+            if shape:
+                features.append({
+                    "type": feature_type,
+                    "geometry": shape,
+                    "tags": tags,
+                    "id": el.get("id")
+                })
+        return features
+
     def get_cache_key(self, bbox: Any, resolution: float) -> str:
         """Generates a unique cache key for the given parameters."""
-        # OSM fetch depends only on bbox, resolution is for rasterization later.
         bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
         return hashlib.md5(bbox_str.encode()).hexdigest()
 
@@ -96,7 +144,6 @@ class OverpassAdapter(DataProviderAdapter):
                     self.cache.save(key, data, "osm", "json")
                     return json.loads(data)
                 else:
-                    # In a real scenario we would try fallbacks here
                     response.raise_for_status()
 
     def validate_credentials(self) -> bool:

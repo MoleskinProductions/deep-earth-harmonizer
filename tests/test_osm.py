@@ -5,6 +5,7 @@ from deep_earth.providers.osm import OverpassAdapter
 from deep_earth.providers.base import DataProviderAdapter
 import json
 import hashlib
+from shapely.geometry import LineString, Polygon, Point
 
 def test_overpass_adapter_initialization():
     """Test that OverpassAdapter initializes correctly and inherits from DataProviderAdapter."""
@@ -125,10 +126,49 @@ async def test_fetch_caching():
         
         # Verify save was called
         assert adapter.cache.save.called
-        # Check arguments: key, data, category, extension
-        # key based on bbox
-        # data should be bytes
         args = adapter.cache.save.call_args
         assert args[0][1] == mock_response_bytes
         assert args[0][2] == "osm"
         assert args[0][3] == "json"
+
+def test_parse_elements():
+    """Test parsing Overpass JSON elements into Shapely geometries."""
+    adapter = OverpassAdapter()
+    
+    # Mock data with ways containing geometry (assuming 'out geom' was used)
+    mock_data = {
+        "elements": [
+            {
+                "type": "way",
+                "id": 1,
+                "tags": {"highway": "residential"},
+                "geometry": [
+                    {"lat": 45.0, "lon": -93.0},
+                    {"lat": 45.1, "lon": -93.1}
+                ]
+            },
+            {
+                "type": "way",
+                "id": 2,
+                "tags": {"building": "yes", "height": "10"},
+                "geometry": [
+                    {"lat": 45.0, "lon": -93.0},
+                    {"lat": 45.01, "lon": -93.0},
+                    {"lat": 45.01, "lon": -93.01},
+                    {"lat": 45.0, "lon": -93.0}
+                ]
+            }
+        ]
+    }
+    
+    features = adapter._parse_elements(mock_data["elements"])
+    
+    assert len(features) == 2
+    # Check first feature (Road)
+    assert features[0]["type"] == "road"
+    assert isinstance(features[0]["geometry"], LineString)
+    
+    # Check second feature (Building)
+    assert features[1]["type"] == "building"
+    assert isinstance(features[1]["geometry"], Polygon)
+    assert features[1]["tags"]["height"] == 10.0
