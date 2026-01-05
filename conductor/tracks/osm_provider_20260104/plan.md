@@ -21,8 +21,8 @@
 - [x] Task: Implement categorical mask generation for Land Use and Natural features. 21afd4c
 - [x] Task: Conductor - User Manual Verification 'Rasterization Engine' (Protocol in workflow.md)
 
-## Phase 4: Integration & Harmonization [checkpoint: pending]
+## Phase 4: Integration & Harmonization [checkpoint: 3b4bb2e]
 - [x] Task: Write tests for integration within the main `Harmonizer` class. f6c172e
 - [x] Task: Update `harmonize.py` to include OSM data in the master grid construction. f6c172e
 - [x] Task: Verify end-to-end flow from bounding box to multi-layer attribute grid. f6c172e
-- [ ] Task: Conductor - User Manual Verification 'Integration & Harmonization' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Integration & Harmonization' (Protocol in workflow.md)
