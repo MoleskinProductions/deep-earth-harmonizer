@@ -6,6 +6,7 @@ from deep_earth.providers.base import DataProviderAdapter
 import json
 import hashlib
 from shapely.geometry import LineString, Polygon, Point
+import numpy as np
 
 def test_overpass_adapter_initialization():
     """Test that OverpassAdapter initializes correctly and inherits from DataProviderAdapter."""
@@ -172,3 +173,47 @@ def test_parse_elements():
     assert features[1]["type"] == "building"
     assert isinstance(features[1]["geometry"], Polygon)
     assert features[1]["tags"]["height"] == 10.0
+
+def test_transform_to_grid():
+    """Test rasterizing features into a grid."""
+    adapter = OverpassAdapter()
+    grid = MagicMock()
+    grid.width = 10
+    grid.height = 10
+    # simplified transform for test
+    grid.dst_transform = [1.0, 0, 0, 0, -1.0, 10]
+    grid.dst_crs = "EPSG:3857"
+    
+    # Mock data from _parse_elements (using small coords for simple grid)
+    data = [
+        {
+            "type": "road",
+            "geometry": LineString([(1, 1), (9, 9)]),
+            "tags": {"highway": "primary"}
+        },
+        {
+            "type": "building",
+            "geometry": Polygon([(2, 2), (2, 4), (4, 4), (4, 2), (2, 2)]),
+            "tags": {"building": "yes", "height": 15.0}
+        }
+    ]
+    
+    # Mock projection to avoid actual pyproj call during unit test if possible
+    with patch("deep_earth.providers.osm.pyproj.Transformer.from_crs") as MockTransformer:
+        # Mock transformer to return input as is (identity)
+        mock_trans = MockTransformer.return_value
+        mock_trans.transform.side_effect = lambda x, y: (x, y)
+        
+        result = adapter.transform_to_grid(data, grid)
+        
+        assert "road_distance" in result
+        assert "building_mask" in result
+        assert "building_height" in result
+        assert isinstance(result["road_distance"], np.ndarray)
+        assert result["road_distance"].shape == (10, 10)
+        assert result["building_mask"].shape == (10, 10)
+        
+        # Verify road distance field has values > 0
+        assert np.any(result["road_distance"] > 0)
+        # Verify building mask has 1s
+        assert np.any(result["building_mask"] == 1)

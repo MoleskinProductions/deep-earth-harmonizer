@@ -1,8 +1,14 @@
 import hashlib
 import json
 import aiohttp
+import numpy as np
+import pyproj
 from typing import Any
 from shapely.geometry import LineString, Polygon, Point
+from shapely.ops import transform
+from rasterio.features import rasterize
+from scipy.ndimage import distance_transform_edt
+
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
@@ -144,11 +150,80 @@ class OverpassAdapter(DataProviderAdapter):
                     self.cache.save(key, data, "osm", "json")
                     return json.loads(data)
                 else:
+                    # In a real scenario we would try fallbacks here
                     response.raise_for_status()
 
     def validate_credentials(self) -> bool:
         # Overpass API (public) typically doesn't require credentials
         return True
 
-    def transform_to_grid(self, data: Any, target_grid: Any) -> Any:
-        pass
+    def transform_to_grid(self, data: list[dict], target_grid: Any) -> dict[str, np.ndarray]:
+        """
+        Transforms parsed OSM features into a set of raster layers aligned with the target grid.
+        """
+        width, height = target_grid.width, target_grid.height
+        transform_meta = target_grid.dst_transform
+        
+        # Prepare coordinate transformer from WGS84 to Target CRS
+        # OSM is WGS84 (EPSG:4326)
+        wgs84 = pyproj.CRS("EPSG:4326")
+        target_crs = pyproj.CRS(target_grid.dst_crs)
+        project_func = pyproj.Transformer.from_crs(wgs84, target_crs, always_xy=True).transform
+        
+        # Initialize result layers
+        layers = {
+            "road_distance": np.full((height, width), 1e6, dtype=np.float32),
+            "water_distance": np.full((height, width), 1e6, dtype=np.float32),
+            "natural_distance": np.full((height, width), 1e6, dtype=np.float32),
+            "building_mask": np.zeros((height, width), dtype=np.uint8),
+            "building_height": np.zeros((height, width), dtype=np.float32),
+            "landuse_id": np.zeros((height, width), dtype=np.int32)
+        }
+        
+        # We need a list of shapes for each category to rasterize
+        categorized_shapes = {
+            "road": [],
+            "waterway": [],
+            "building": [],
+            "landuse": [],
+            "natural": []
+        }
+        
+        for feat in data:
+            # Project geometry to target CRS
+            projected_geom = transform(project_func, feat["geometry"])
+            feat_type = feat["type"]
+            if feat_type in categorized_shapes:
+                categorized_shapes[feat_type].append((projected_geom, feat))
+
+        # 1. Rasterize Buildings
+        if categorized_shapes["building"]:
+            shapes = [s for s, f in categorized_shapes["building"]]
+            mask = rasterize(shapes, out_shape=(height, width), transform=transform_meta)
+            layers["building_mask"] = mask
+            
+            # Rasterize building heights
+            height_shapes = [(s, f["tags"].get("height", 0)) for s, f in categorized_shapes["building"]]
+            layers["building_height"] = rasterize(height_shapes, out_shape=(height, width), transform=transform_meta)
+
+        # 2. Rasterize Landuse (categorical)
+        if categorized_shapes["landuse"]:
+            landuse_types = sorted(list(set(f["tags"].get("landuse", "unknown") for s, f in categorized_shapes["landuse"])))
+            type_to_id = {t: i+1 for i, t in enumerate(landuse_types)}
+            
+            lu_shapes = [(s, type_to_id.get(f["tags"].get("landuse", "unknown"), 0)) for s, f in categorized_shapes["landuse"]]
+            layers["landuse_id"] = rasterize(lu_shapes, out_shape=(height, width), transform=transform_meta)
+
+        # 3. Distance Fields (Roads, Water, Natural)
+        for cat, layer_name in [("road", "road_distance"), ("waterway", "water_distance"), ("natural", "natural_distance")]:
+            if categorized_shapes[cat]:
+                cat_shapes = [s for s, f in categorized_shapes[cat]]
+                binary_mask = rasterize(cat_shapes, out_shape=(height, width), transform=transform_meta)
+                
+                if np.any(binary_mask):
+                    dist = distance_transform_edt(1 - binary_mask)
+                    # Convert pixel distance to meters
+                    pixel_size = abs(transform_meta[0]) 
+                    layers[layer_name] = (dist * pixel_size).astype(np.float32)
+
+        return layers
