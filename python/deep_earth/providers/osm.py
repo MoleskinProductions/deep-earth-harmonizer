@@ -7,15 +7,17 @@ class OverpassAdapter(DataProviderAdapter):
     """
     DEFAULT_API_URL = "https://overpass-api.de/api/interpreter"
 
-    def __init__(self, base_url: str = None):
+    def __init__(self, base_url: str = None, fallback_urls: list[str] = None):
         """
         Initialize the OverpassAdapter.
 
         Args:
             base_url (str, optional): The base URL for the Overpass API. 
                                       Defaults to the main public instance.
+            fallback_urls (list[str], optional): List of fallback API URLs.
         """
         self.base_url = base_url or self.DEFAULT_API_URL
+        self.fallback_urls = fallback_urls or []
 
     def _build_query(self, bbox: tuple[float, float, float, float]) -> str:
         """

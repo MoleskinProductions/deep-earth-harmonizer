@@ -44,3 +44,12 @@ def test_build_query():
     ]
     for feature in features:
         assert feature in query
+
+def test_endpoint_fallback_config():
+    """Test configuring the adapter with fallback URLs."""
+    fallbacks = [
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter"
+    ]
+    adapter = OverpassAdapter(fallback_urls=fallbacks)
+    assert adapter.fallback_urls == fallbacks
