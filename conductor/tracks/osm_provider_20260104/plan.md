@@ -9,9 +9,9 @@
 - [x] Task: Conductor - User Manual Verification 'Foundation & API Acquisition' (Protocol in workflow.md)
 
 ## Phase 2: Vector Parsing & Processing [checkpoint: pending]
-- [ ] Task: Write tests for JSON-to-Shapely geometry conversion.
-- [ ] Task: Implement parsing logic to separate Roads, Water, Buildings, and Land Use.
-- [ ] Task: Implement attribute extraction (e.g., `height` from building tags).
+- [x] Task: Write tests for JSON-to-Shapely geometry conversion. a9ca7ed
+- [x] Task: Implement parsing logic to separate Roads, Water, Buildings, and Land Use. a9ca7ed
+- [x] Task: Implement attribute extraction (e.g., `height` from building tags). a9ca7ed
 - [ ] Task: Conductor - User Manual Verification 'Vector Parsing & Processing' (Protocol in workflow.md)
 
 ## Phase 3: Rasterization Engine [checkpoint: pending]
