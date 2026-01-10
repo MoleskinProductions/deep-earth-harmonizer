@@ -71,6 +71,7 @@ async def test_srtm_fetch_failure(mock_credentials, mock_cache, coordinate_manag
     mock_response = MagicMock()
     mock_response.status = 403
     mock_response.text = AsyncMock(return_value="Forbidden")
+    mock_response.raise_for_status.side_effect = aiohttp.ClientError("Forbidden")
     mock_response.__aenter__ = AsyncMock(return_value=mock_response)
     mock_response.__aexit__ = AsyncMock(return_value=None)
     
@@ -81,7 +82,7 @@ async def test_srtm_fetch_failure(mock_credentials, mock_cache, coordinate_manag
     
     with patch("aiohttp.ClientSession", return_value=mock_session):
         mock_cache.exists.return_value = False
-        with pytest.raises(Exception, match="Failed to fetch SRTM"):
+        with pytest.raises(Exception, match="Forbidden"):
             await adapter.fetch(coordinate_manager, resolution=30)
 
 def test_srtm_transform_to_grid_reprojection(mock_credentials, mock_cache, coordinate_manager, tmp_path):

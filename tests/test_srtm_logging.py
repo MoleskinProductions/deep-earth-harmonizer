@@ -64,6 +64,7 @@ async def test_srtm_logging_error(mock_credentials, mock_cache, coordinate_manag
     mock_response = MagicMock()
     mock_response.status = 500
     mock_response.text = AsyncMock(return_value="Server Error")
+    mock_response.raise_for_status.side_effect = Exception("Server Error")
     mock_response.__aenter__ = AsyncMock(return_value=mock_response)
     mock_response.__aexit__ = AsyncMock(return_value=None)
     
@@ -79,4 +80,4 @@ async def test_srtm_logging_error(mock_credentials, mock_cache, coordinate_manag
             with pytest.raises(Exception):
                 await adapter.fetch(coordinate_manager, resolution=30)
     
-    assert "Failed to fetch SRTM: 500 - Server Error" in caplog.text
+    assert "Failed to fetch SRTM: Server Error" in caplog.text

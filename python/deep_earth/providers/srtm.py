@@ -5,6 +5,7 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 from deep_earth.bbox import BoundingBox
+from deep_earth.retry import fetch_with_retry
 from .base import DataProviderAdapter
 
 logger = logging.getLogger(__name__)
@@ -44,15 +45,13 @@ class SRTMAdapter(DataProviderAdapter):
         }
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(self.api_url, params=params) as response:
-                if response.status == 200:
-                    data = await response.read()
-                    logger.info("Fetched SRTM successfully")
-                    return self.cache.save(cache_key, data, category="srtm")
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to fetch SRTM: {response.status} - {error_text}")
-                    raise Exception(f"Failed to fetch SRTM: {response.status} - {error_text}")
+            try:
+                data = await fetch_with_retry(session, self.api_url, params=params)
+                logger.info("Fetched SRTM successfully")
+                return self.cache.save(cache_key, data, category="srtm")
+            except Exception as e:
+                logger.error(f"Failed to fetch SRTM: {e}")
+                raise e
 
     def transform_to_grid(self, data_path, coordinate_manager):
         """Loads the GeoTIFF and reprojects it to the UTM grid defined by coordinate_manager."""

@@ -78,9 +78,9 @@ async def test_osm_logging_error(mock_cache, caplog):
     with patch("aiohttp.ClientSession", return_value=mock_session):
         # Configure raise_for_status to raise
         mock_response.raise_for_status.side_effect = Exception("HTTP Error")
-        
+
         with caplog.at_level(logging.ERROR, logger="deep_earth.providers.osm"):
             with pytest.raises(Exception):
                 await adapter.fetch((44.9, -93.1, 45.0, -93.0), resolution=10)
 
-    assert "Failed to fetch OSM: 500 - Internal Server Error" in caplog.text
+    assert "Failed to fetch OSM: HTTP Error" in caplog.text

@@ -14,6 +14,7 @@ from deep_earth.bbox import BoundingBox
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
+from deep_earth.retry import fetch_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -161,18 +162,15 @@ class OverpassAdapter(DataProviderAdapter):
         query = self._build_query(bbox_tuple)
         
         async with aiohttp.ClientSession() as session:
-            # Overpass API takes the query in the 'data' parameter
-            async with session.get(self.base_url, params={'data': query}) as response:
-                if response.status == 200:
-                    data = await response.read()
-                    logger.info("Fetched OSM data successfully")
-                    self.cache.save(key, data, "osm", "json")
-                    return json.loads(data)
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to fetch OSM: {response.status} - {error_text}")
-                    # In a real scenario we would try fallbacks here
-                    response.raise_for_status()
+            try:
+                # Overpass API takes the query in the 'data' parameter
+                data = await fetch_with_retry(session, self.base_url, params={'data': query})
+                logger.info("Fetched OSM data successfully")
+                self.cache.save(key, data, "osm", "json")
+                return json.loads(data)
+            except Exception as e:
+                logger.error(f"Failed to fetch OSM: {e}")
+                raise e
 
     def validate_credentials(self) -> bool:
         # Overpass API (public) typically doesn't require credentials

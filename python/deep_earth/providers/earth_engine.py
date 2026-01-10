@@ -7,6 +7,7 @@ import aiohttp
 import logging
 
 from deep_earth.bbox import BoundingBox
+from deep_earth.retry import fetch_with_retry
 from .base import DataProviderAdapter
 
 logger = logging.getLogger(__name__)
@@ -83,15 +84,9 @@ class EarthEngineAdapter(DataProviderAdapter):
             logger.info(f"Downloading GEE export from {url}")
             
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.read()
-                        logger.info("Fetched GEE embeddings successfully")
-                        return self.cache.save(cache_key, data, category="embeddings")
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Failed to download GEE export: {response.status} - {error_text}")
-                        raise Exception(f"Failed to download GEE export: {response.status} - {error_text}")
+                data = await fetch_with_retry(session, url)
+                logger.info("Fetched GEE embeddings successfully")
+                return self.cache.save(cache_key, data, category="embeddings")
         except Exception as e:
             logger.error(f"GEE Export failed: {e}")
             raise Exception(f"GEE Export failed: {e}")
