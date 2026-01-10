@@ -3,15 +3,20 @@ import json
 import aiohttp
 import numpy as np
 import pyproj
-from typing import Any
+import logging
+from typing import Any, Union
 from shapely.geometry import LineString, Polygon, Point
 from shapely.ops import transform
 from rasterio.features import rasterize
 from scipy.ndimage import distance_transform_edt
 
+from deep_earth.bbox import BoundingBox
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
+
+logger = logging.getLogger(__name__)
+
 
 class OverpassAdapter(DataProviderAdapter):
     """
@@ -116,40 +121,56 @@ class OverpassAdapter(DataProviderAdapter):
                 })
         return features
 
-    def get_cache_key(self, bbox: Any, resolution: float) -> str:
+    def get_cache_key(self, bbox: Union[BoundingBox, tuple], resolution: float) -> str:
         """Generates a unique cache key for the given parameters."""
-        bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
+        if isinstance(bbox, BoundingBox):
+            bbox_tuple = bbox.as_tuple()
+        else:
+            bbox_tuple = bbox
+        bbox_str = f"{bbox_tuple[0]},{bbox_tuple[1]},{bbox_tuple[2]},{bbox_tuple[3]}"
         return hashlib.md5(bbox_str.encode()).hexdigest()
 
-    async def fetch(self, bbox: Any, resolution: float) -> Any:
+    async def fetch(self, bbox: Union[BoundingBox, tuple], resolution: float) -> dict:
         """
         Fetch data from Overpass API.
         
         Args:
-            bbox: Tuple of (min_lat, min_lon, max_lat, max_lon)
+            bbox: BoundingBox or tuple of (min_lat, min_lon, max_lat, max_lon)
             resolution: Not used for Overpass fetch, but required by interface.
             
         Returns:
             dict: The JSON response from Overpass.
         """
-        key = self.get_cache_key(bbox, resolution)
+        # Convert BoundingBox to tuple if needed
+        if isinstance(bbox, BoundingBox):
+            bbox_tuple = bbox.as_tuple()
+        else:
+            bbox_tuple = bbox
+            
+        logger.info(f"Fetching OSM data for bbox {bbox_tuple}")
+        key = self.get_cache_key(bbox_tuple, resolution)
         
         # Check cache
         if self.cache.exists(key, "osm", "json"):
+            logger.debug(f"Cache hit for {key}")
             path = self.cache.get_path(key, "osm", "json")
             with open(path, "r") as f:
                 return json.load(f)
 
-        query = self._build_query(bbox)
+        logger.debug(f"Cache miss for {key}")
+        query = self._build_query(bbox_tuple)
         
         async with aiohttp.ClientSession() as session:
             # Overpass API takes the query in the 'data' parameter
             async with session.get(self.base_url, params={'data': query}) as response:
                 if response.status == 200:
                     data = await response.read()
+                    logger.info("Fetched OSM data successfully")
                     self.cache.save(key, data, "osm", "json")
                     return json.loads(data)
                 else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to fetch OSM: {response.status} - {error_text}")
                     # In a real scenario we would try fallbacks here
                     response.raise_for_status()
 

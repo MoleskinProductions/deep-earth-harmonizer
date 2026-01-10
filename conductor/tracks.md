@@ -1,8 +1,31 @@
 # Project Tracks
 
-This file tracks all major tracks for the project. Each track has its own detailed plan in its respective folder.
+Current status and active development tracks for Deep Earth Harmonizer v2.
 
 ---
 
-## [~] Track: Implement OpenStreetMap (OSM) Provider
-*Link: [./conductor/tracks/osm_provider_20260104/](./conductor/tracks/osm_provider_20260104/)*
+## [x] Track: Critical Fixes
+> Completed 2026-01-10
+
+- [Link](conductor/archive/foundation_20251228) (Archived)
+
+---
+
+## [~] Track: Core Stability
+> Goal: Make the system robust and debuggable
+
+- [Link](conductor/tracks/phase2-stability)
+
+---
+
+## [ ] Track: Feature Completion
+> Goal: Implement missing spec features
+
+- [Link](conductor/tracks/phase3-features)
+
+---
+
+## [ ] Track: Developer Experience
+> Goal: Improve usability and maintainability
+
+- [Link](conductor/tracks/phase4-polish)

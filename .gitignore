@@ -5,3 +5,12 @@ venv/
 .coverage
 htmlcov/
 deep_earth.egg-info/
+
+# Credentials - NEVER commit these
+credentials.json
+*-service-account*.json
+*.pem
+*.key
+.env
+.env.*
+deep_earth.log
