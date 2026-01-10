@@ -48,4 +48,20 @@ def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_g
     
     # 4. Set P (Position) for points to match UTM grid
     # This aligns the point cloud with the heightfield
-    # ... logic to calculate per-point positions based on transform ...
+    
+    # Generate grid of column and row indices
+    cols, rows = np.meshgrid(np.arange(harmonizer.width), np.arange(harmonizer.height))
+    
+    # Calculate UTM coordinates (X=Easting, Y=Northing)
+    # rasterio.transform * (cols, rows) returns (x, y)
+    # We use (cols + 0.5, rows + 0.5) to get pixel centers
+    xs, ys = harmonizer.dst_transform * (cols + 0.5, rows + 0.5)
+    
+    # In Houdini:
+    # X = UTM Easting
+    # Y = Elevation (height_grid)
+    # Z = UTM Northing
+    # Note: height_grid is usually (H, W)
+    positions = np.stack([xs, height_grid, ys], axis=-1).reshape(-1, 3)
+    
+    geo.setPointFloatAttribValues("P", positions.flatten().tolist())
