@@ -12,9 +12,10 @@ Make the system robust and debuggable.
 [x] 2.1 Logging Infrastructure (76c6db3)
 
 ### 2.2 Retry Logic
-- [ ] Add `tenacity>=8.0` to dependencies
-- [ ] Wrap HTTP calls in retry decorator (max 3 attempts, exponential backoff)
-- [ ] Handle 429 (rate limit) with longer wait
+- [x] Add `tenacity>=8.0` to dependencies
+- [x] Wrap HTTP calls in retry decorator (max 3 attempts, exponential backoff)
+- [x] Handle 429 (rate limit) with longer wait
+[x] 2.2 Retry Logic (50b67a9)
 
 ### 2.3 Enhanced Cache
 - [ ] Add TTL support (SRTM=never, OSM=30 days)
