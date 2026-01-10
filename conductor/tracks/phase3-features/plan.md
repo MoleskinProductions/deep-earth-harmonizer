@@ -7,7 +7,7 @@ Implement missing spec features for Houdini integration.
 
 ### 3.1 Houdini Geometry Injection
 - [x] Implement point position calculation based on UTM grid transform (3cb61d8)
-- [ ] Add OSM attribute injection (`s@highway`, `f@road_distance`, etc.)
+- [x] Add OSM attribute injection (`s@highway`, `f@road_distance`, etc.) (3efb819)
 - [ ] Add visualization modes (PCA embeddings, biome colors)
 
 ### 3.2 Derived Terrain Attributes
