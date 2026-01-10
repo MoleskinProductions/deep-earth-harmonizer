@@ -182,3 +182,36 @@ def test_inject_heightfield_viz_biome():
         assert cd_values[0] == pytest.approx(0.1)
         assert cd_values[1] == pytest.approx(0.5)
         assert cd_values[2] == pytest.approx(0.1)
+
+def test_inject_heightfield_data_quality():
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        
+        height_grid = np.zeros((h.height, h.width))
+        embed_grid = np.zeros((64, h.height, h.width))
+        
+        # Compute and add quality layer
+        quality = h.compute_quality_layer(height_grid, embed_grid)
+        h.add_layers({"data_quality": quality})
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid)
+        
+        # Check if data_quality attribute was added
+        add_attrib_calls = [call[0][1] for call in geo.addAttrib.call_args_list]
+        assert "data_quality" in add_attrib_calls
+        
+        # Check if values were set (DEM + Embeddings = 0.75)
+        dq_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "data_quality"]
+        assert len(dq_calls) == 1
+        assert dq_calls[0][0][1][0] == pytest.approx(0.75)

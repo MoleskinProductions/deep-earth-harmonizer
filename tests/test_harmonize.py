@@ -46,3 +46,21 @@ def test_resample_multi_band(coordinate_manager, tmp_path):
         
     resampled = h.resample(str(src_path), bands=list(range(1, 65)))
     assert resampled.shape == (64, h.height, h.width)
+
+def test_compute_quality_layer(coordinate_manager):
+    h = Harmonizer(coordinate_manager, resolution=100)
+    
+    # DEM only
+    q1 = h.compute_quality_layer(height_grid=np.zeros((h.height, h.width)))
+    assert np.all(q1 == 0.25)
+    
+    # DEM + Embeddings
+    q2 = h.compute_quality_layer(height_grid=np.zeros((h.height, h.width)), 
+                                 embed_grid=np.zeros((64, h.height, h.width)))
+    assert np.all(q2 == 0.75)
+    
+    # All
+    h.add_layers({"highway": np.zeros((h.height, h.width))})
+    q3 = h.compute_quality_layer(height_grid=np.zeros((h.height, h.width)), 
+                                 embed_grid=np.zeros((64, h.height, h.width)))
+    assert np.all(q3 == 1.0)

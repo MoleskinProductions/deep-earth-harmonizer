@@ -1,4 +1,5 @@
 import numpy as np
+from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
 
 def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_grid, viz_mode=None):
     """
@@ -15,7 +16,6 @@ def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_g
         viz_mode: Optional visualization mode ('pca', 'biome').
     """
     import hou
-    from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
     
     # 1. Create/Resize Heightfield
     # Standard heightfield in Houdini is a volume with a 'height' layer

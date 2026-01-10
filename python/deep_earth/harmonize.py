@@ -55,3 +55,30 @@ class Harmonizer:
             if data.shape != (self.height, self.width):
                 raise ValueError(f"Layer dimensions {data.shape} do not match master grid {(self.height, self.width)}")
             self.layers[name] = data
+
+    def compute_quality_layer(self, height_grid=None, embed_grid=None):
+        """
+        Computes a data quality score (0.0 - 1.0) for each grid cell.
+        
+        Scoring:
+        - DEM only: 0.25
+        - DEM + Embeddings: 0.75
+        - DEM + OSM: 0.5
+        - All: 1.0
+        """
+        quality = np.zeros((self.height, self.width), dtype=np.float32)
+        
+        has_dem = height_grid is not None
+        has_embed = embed_grid is not None
+        has_osm = "highway" in self.layers or "landuse" in self.layers
+        
+        if has_dem:
+            quality += 0.25
+            
+        if has_embed:
+            quality += 0.5
+            
+        if has_osm:
+            quality += 0.25
+            
+        return quality
