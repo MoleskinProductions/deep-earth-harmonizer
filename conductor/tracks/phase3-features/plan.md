@@ -19,9 +19,9 @@ Implement missing spec features for Houdini integration.
 - [x] Add `compute_twi()` — Topographic Wetness Index (4428a81)
 
 ### 3.3 Data Quality Tracking
-- [ ] Add `data_quality` field to Harmonizer output
-- [ ] Score based on available sources (all=1.0, DEM only=0.25)
-- [ ] Inject as `f@data_quality` attribute in Houdini
+- [x] Add `data_quality` field to Harmonizer output (054144a)
+- [x] Score based on available sources (all=1.0, DEM only=0.25) (054144a)
+- [x] Inject as `f@data_quality` attribute in Houdini (054144a)
 
 ## Files to Modify
 | Action | File |
