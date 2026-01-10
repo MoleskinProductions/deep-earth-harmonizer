@@ -1,12 +1,21 @@
 import numpy as np
 
-def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_grid):
+def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_grid, viz_mode=None):
     """
     Injects elevation and embedding data into a Houdini heightfield.
     Note: This uses the 'hou' module which is only available inside Houdini.
     We use a generic 'geo' object to allow for some level of testing/mocking.
+    
+    Args:
+        geo: The Houdini geometry object.
+        coordinate_manager: The CoordinateManager instance.
+        harmonizer: The Harmonizer instance.
+        height_grid: (H, W) elevation grid.
+        embed_grid: (64, H, W) embedding grid.
+        viz_mode: Optional visualization mode ('pca', 'biome').
     """
     import hou
+    from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
     
     # 1. Create/Resize Heightfield
     # Standard heightfield in Houdini is a volume with a 'height' layer
@@ -55,6 +64,26 @@ def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_g
         elif np.issubdtype(data.dtype, np.str_) or data.dtype == object:
             geo.addAttrib(hou.attribType.Point, name, "")
             geo.setPointStringAttribValues(name, flattened_data.tolist())
+    
+    # 3.5 Visualization Modes (Cd attribute)
+    if viz_mode:
+        geo.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
+        colors = None
+        
+        if viz_mode == "pca":
+            colors = compute_pca_colors(embed_grid)
+        elif viz_mode == "biome":
+            landuse = harmonizer.layers.get("landuse")
+            if landuse is not None:
+                colors = apply_biome_colors(landuse).reshape(-1, 3)
+            else:
+                # Try 'natural' layer if landuse is missing
+                natural = harmonizer.layers.get("natural")
+                if natural is not None:
+                    colors = apply_biome_colors(natural).reshape(-1, 3)
+        
+        if colors is not None:
+            geo.setPointFloatAttribValues("Cd", colors.flatten().tolist())
     
     # 4. Set P (Position) for points to match UTM grid
     # This aligns the point cloud with the heightfield

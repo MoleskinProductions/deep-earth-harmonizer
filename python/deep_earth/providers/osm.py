@@ -197,6 +197,7 @@ class OverpassAdapter(DataProviderAdapter):
             "building_mask": np.zeros((height, width), dtype=np.uint8),
             "building_height": np.zeros((height, width), dtype=np.float32),
             "landuse_id": np.zeros((height, width), dtype=np.int32),
+            "landuse": np.full((height, width), "", dtype=object),
             "highway": np.full((height, width), "", dtype=object)
         }
         
@@ -247,9 +248,16 @@ class OverpassAdapter(DataProviderAdapter):
         if categorized_shapes["landuse"]:
             landuse_types = sorted(list(set(f["tags"].get("landuse", "unknown") for s, f in categorized_shapes["landuse"])))
             type_to_id = {t: i+1 for i, t in enumerate(landuse_types)}
+            id_to_type = {i+1: t for i, t in enumerate(landuse_types)}
+            id_to_type[0] = ""
             
             lu_shapes = [(s, type_to_id.get(f["tags"].get("landuse", "unknown"), 0)) for s, f in categorized_shapes["landuse"]]
-            layers["landuse_id"] = rasterize(lu_shapes, out_shape=(height, width), transform=transform_meta)
+            lu_ids = rasterize(lu_shapes, out_shape=(height, width), transform=transform_meta)
+            layers["landuse_id"] = lu_ids
+            
+            # Map back to strings for visualization
+            v_lu_id_to_type = np.vectorize(lambda x: id_to_type.get(x, ""))
+            layers["landuse"] = v_lu_id_to_type(lu_ids).astype(object)
 
         # 3. Distance Fields (Roads, Water, Natural)
         for cat, layer_name in [("road", "road_distance"), ("waterway", "water_distance"), ("natural", "natural_distance")]:

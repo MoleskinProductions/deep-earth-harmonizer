@@ -119,3 +119,66 @@ def test_inject_heightfield_injects_string_attributes():
         highway_calls = [call for call in geo.setPointStringAttribValues.call_args_list if call[0][0] == "highway"]
         assert len(highway_calls) == 1
         assert highway_calls[0][0][1][0] == "primary"
+
+def test_inject_heightfield_viz_pca():
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        
+        height_grid = np.zeros((h.height, h.width))
+        # Embeddings with some variance
+        embed_grid = np.random.rand(64, h.height, h.width)
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid, viz_mode="pca")
+        
+        # Check if Cd was added
+        add_attrib_calls = [call[0][1] for call in geo.addAttrib.call_args_list]
+        assert "Cd" in add_attrib_calls
+        
+        # Check if Cd values were set
+        cd_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "Cd"]
+        assert len(cd_calls) == 1
+
+def test_inject_heightfield_viz_biome():
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        h.add_layers({"landuse": np.full((h.height, h.width), "forest", dtype=object)})
+        
+        height_grid = np.zeros((h.height, h.width))
+        embed_grid = np.zeros((64, h.height, h.width))
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid, viz_mode="biome")
+        
+        # Check if Cd was added
+        add_attrib_calls = [call[0][1] for call in geo.addAttrib.call_args_list]
+        assert "Cd" in add_attrib_calls
+        
+        # Check if Cd values were set
+        cd_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "Cd"]
+        assert len(cd_calls) == 1
+        # Check if it's green (forest)
+        cd_values = cd_calls[0][0][1]
+        assert cd_values[0] == pytest.approx(0.1)
+        assert cd_values[1] == pytest.approx(0.5)
+        assert cd_values[2] == pytest.approx(0.1)
