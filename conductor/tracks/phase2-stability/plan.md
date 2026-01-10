@@ -1,4 +1,4 @@
-# Core Stability - Plan
+# Core Stability - Plan [checkpoint: c059407]
 
 ## Goal
 Make the system robust and debuggable.
