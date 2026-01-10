@@ -772,10 +772,10 @@ On first use, present a guided setup:
 - [ ] Basic HDA shell with parameter interface
 
 ### Phase 2: Data Providers (Week 3-4)
-- [ ] SRTM/OpenTopography adapter (with caching)
-- [ ] Earth Engine adapter (with async export handling)
-- [ ] Overpass API adapter (with rasterization)
-- [ ] Unit tests for each provider
+- [x] SRTM/OpenTopography adapter (with caching)
+- [x] Earth Engine adapter (with async export handling)
+- [x] Overpass API adapter (with rasterization)
+- [x] Unit tests for each provider
 
 ### Phase 3: Harmonization (Week 5-6)
 - [ ] Grid resampling and alignment

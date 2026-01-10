@@ -15,10 +15,10 @@ Since we cannot automate HDA binary creation here, we will document its required
 | `fetch` | Fetch Data | Button | |
 | `cache_path` | Cache Path | String | $HOUDINI_USER_PREF_DIR/deep_earth_cache |
 
-### Internal Python SOP Logic (Draft):
+### Internal Python SOP Logic:
 ```python
-import asyncio
 import hou
+from deep_earth.async_utils import run_async
 from deep_earth.credentials import CredentialsManager
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
@@ -27,6 +27,17 @@ from deep_earth.providers.srtm import SRTMAdapter
 from deep_earth.providers.earth_engine import EarthEngineAdapter
 from deep_earth.harmonize import Harmonizer
 from deep_earth.houdini.geometry import inject_heightfield
+
+
+async def fetch_all_data(srtm_adapter, gee_adapter, cm, resolution, year):
+    """Fetch all data sources concurrently."""
+    import asyncio
+    srtm_path, gee_path = await asyncio.gather(
+        srtm_adapter.fetch(cm, 30),
+        gee_adapter.fetch(cm, resolution, year)
+    )
+    return srtm_path, gee_path
+
 
 def run_fetch(node):
     lat_min, lat_max = node.parmTuple("lat_range").eval()
@@ -43,12 +54,13 @@ def run_fetch(node):
     gee_adapter = EarthEngineAdapter(creds, cache)
     harmonizer = Harmonizer(cm, resolution)
     
-    # Run async fetch
-    loop = asyncio.get_event_loop()
-    srtm_path = loop.run_until_complete(srtm_adapter.fetch(cm, 30))
-    gee_path = loop.run_until_complete(gee_adapter.fetch(cm, resolution, year))
+    # Run async fetch using thread-safe helper
+    # This works correctly even when Houdini's main loop is running
+    srtm_path, gee_path = run_async(
+        fetch_all_data(srtm_adapter, gee_adapter, cm, resolution, year)
+    )
     
-    # Resample
+    # Resample to master grid
     height_grid = harmonizer.resample(srtm_path, bands=1)
     embed_grid = harmonizer.resample(gee_path, bands=list(range(1, 65)))
     
@@ -56,5 +68,5 @@ def run_fetch(node):
     geo = node.geometry()
     inject_heightfield(geo, cm, harmonizer, height_grid, embed_grid)
 
-# Triggered by 'fetch' button
+# Triggered by 'fetch' button callback
 ```

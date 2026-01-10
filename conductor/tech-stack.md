@@ -13,6 +13,7 @@ This document outlines the core technologies and dependencies used in the Deep E
 - **shapely:** Performing geometric operations, bounding box validation, and tile subdivision.
 - **rasterio:** reading and writing GeoTIFF data, mosaic creation, and high-performance resampling.
 - **numpy:** The foundation for all grid-based data manipulation, from elevation arrays to 64D embedding vectors.
+- **scipy:** Utilized for high-performance distance field computations (Euclidean Distance Transform) during OSM vector rasterization.
 
 ## Data Provider Integrations
 - **OpenTopography API:** Primary source for SRTM and global elevation datasets.
