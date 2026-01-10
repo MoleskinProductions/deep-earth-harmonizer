@@ -209,11 +209,15 @@ def test_transform_to_grid():
         assert "road_distance" in result
         assert "building_mask" in result
         assert "building_height" in result
+        assert "highway" in result
         assert isinstance(result["road_distance"], np.ndarray)
         assert result["road_distance"].shape == (10, 10)
         assert result["building_mask"].shape == (10, 10)
+        assert result["highway"].shape == (10, 10)
         
         # Verify road distance field has values > 0
         assert np.any(result["road_distance"] > 0)
         # Verify building mask has 1s
         assert np.any(result["building_mask"] == 1)
+        # Verify highway has 'primary'
+        assert "primary" in result["highway"]

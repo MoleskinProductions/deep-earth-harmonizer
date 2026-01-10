@@ -196,7 +196,8 @@ class OverpassAdapter(DataProviderAdapter):
             "natural_distance": np.full((height, width), 1e6, dtype=np.float32),
             "building_mask": np.zeros((height, width), dtype=np.uint8),
             "building_height": np.zeros((height, width), dtype=np.float32),
-            "landuse_id": np.zeros((height, width), dtype=np.int32)
+            "landuse_id": np.zeros((height, width), dtype=np.int32),
+            "highway": np.full((height, width), "", dtype=object)
         }
         
         # We need a list of shapes for each category to rasterize
@@ -214,6 +215,23 @@ class OverpassAdapter(DataProviderAdapter):
             feat_type = feat["type"]
             if feat_type in categorized_shapes:
                 categorized_shapes[feat_type].append((projected_geom, feat))
+
+        # 0. Rasterize Highways (Strings)
+        if categorized_shapes["road"]:
+            # Map highway types to IDs for rasterization
+            highway_types = sorted(list(set(f["tags"].get("highway", "unknown") for s, f in categorized_shapes["road"])))
+            type_to_id = {t: i+1 for i, t in enumerate(highway_types)}
+            id_to_type = {i+1: t for i, t in enumerate(highway_types)}
+            id_to_type[0] = ""
+            
+            hw_shapes = [(s, type_to_id.get(f["tags"].get("highway", "unknown"), 0)) for s, f in categorized_shapes["road"]]
+            # Use a temporary int32 grid for rasterization
+            hw_ids = rasterize(hw_shapes, out_shape=(height, width), transform=transform_meta)
+            
+            # Map back to strings
+            # This is a bit slow for large grids but works for object arrays
+            v_id_to_type = np.vectorize(lambda x: id_to_type.get(x, ""))
+            layers["highway"] = v_id_to_type(hw_ids).astype(object)
 
         # 1. Rasterize Buildings
         if categorized_shapes["building"]:

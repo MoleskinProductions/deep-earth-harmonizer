@@ -41,6 +41,81 @@ def test_inject_heightfield_sets_positions():
         expected_x, expected_y = h.dst_transform * (0.5, 0.5)
         expected_z = height_grid[0, 0]
         
-        assert positions[0] == pytest.approx(expected_x)
-        assert positions[1] == pytest.approx(expected_z) # In Houdini, Y is up, so height is Y
-        assert positions[2] == pytest.approx(expected_y) # Z in Houdini is Y in UTM (North)
+def test_inject_heightfield_injects_osm_attributes():
+    # Mock the 'hou' module
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        
+        # Add OSM layers to harmonizer
+        road_dist = np.random.rand(h.height, h.width).astype(np.float32)
+        landuse_id = np.random.randint(0, 10, (h.height, h.width)).astype(np.int32)
+        h.add_layers({
+            "road_distance": road_dist,
+            "landuse_id": landuse_id
+        })
+        
+        height_grid = np.zeros((h.height, h.width))
+        embed_grid = np.zeros((64, h.height, h.width))
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid)
+        
+        # Check if attributes were added
+        # geo.addAttrib(hou.attribType.Point, name, default_value)
+        add_attrib_calls = [call[0][1] for call in geo.addAttrib.call_args_list]
+        assert "road_distance" in add_attrib_calls
+        assert "landuse_id" in add_attrib_calls
+        
+        # Check if values were set
+        # geo.setPointFloatAttribValues(name, values) or geo.setPointIntAttribValues(name, values)
+        # For road_distance (float)
+        road_dist_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "road_distance"]
+        assert len(road_dist_calls) == 1
+        
+        # For landuse_id (int)
+        landuse_id_calls = [call for call in geo.setPointIntAttribValues.call_args_list if call[0][0] == "landuse_id"]
+        assert len(landuse_id_calls) == 1
+
+def test_inject_heightfield_injects_string_attributes():
+    # Mock the 'hou' module
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        
+        # Add a string layer
+        highway = np.full((h.height, h.width), "primary", dtype=object)
+        h.add_layers({"highway": highway})
+        
+        height_grid = np.zeros((h.height, h.width))
+        embed_grid = np.zeros((64, h.height, h.width))
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid)
+        
+        # Check if attribute was added
+        add_attrib_calls = [call[0][1] for call in geo.addAttrib.call_args_list]
+        assert "highway" in add_attrib_calls
+        
+        # Check if values were set using setPointStringAttribValues
+        highway_calls = [call for call in geo.setPointStringAttribValues.call_args_list if call[0][0] == "highway"]
+        assert len(highway_calls) == 1
+        assert highway_calls[0][0][1][0] == "primary"

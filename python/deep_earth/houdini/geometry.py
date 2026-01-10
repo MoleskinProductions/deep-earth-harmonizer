@@ -37,14 +37,24 @@ def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_g
     geo.clearPoints()
     points = geo.createPoints(harmonizer.width * harmonizer.height)
     
+    # Inject Embeddings
     attr_name = "embedding"
     geo.addAttrib(hou.attribType.Point, attr_name, (0.0,) * 64)
-    
-    # Efficiently set attributes using setPointFloatAttribValues
-    # embed_grid is (64, H, W), we need (N, 64)
-    # Transpose to (H, W, 64) then reshape to (N, 64)
     flattened_embeddings = embed_grid.transpose(1, 2, 0).reshape(-1, 64)
-    geo.setPointFloatAttribValues(attr_name, flattened_embeddings.flatten())
+    geo.setPointFloatAttribValues(attr_name, flattened_embeddings.flatten().tolist())
+    
+    # Inject Additional Layers from Harmonizer (OSM, etc.)
+    for name, data in harmonizer.layers.items():
+        flattened_data = data.flatten()
+        if np.issubdtype(data.dtype, np.floating):
+            geo.addAttrib(hou.attribType.Point, name, 0.0)
+            geo.setPointFloatAttribValues(name, flattened_data.tolist())
+        elif np.issubdtype(data.dtype, np.integer):
+            geo.addAttrib(hou.attribType.Point, name, 0)
+            geo.setPointIntAttribValues(name, flattened_data.tolist())
+        elif np.issubdtype(data.dtype, np.str_) or data.dtype == object:
+            geo.addAttrib(hou.attribType.Point, name, "")
+            geo.setPointStringAttribValues(name, flattened_data.tolist())
     
     # 4. Set P (Position) for points to match UTM grid
     # This aligns the point cloud with the heightfield
