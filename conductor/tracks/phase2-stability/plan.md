@@ -18,10 +18,11 @@ Make the system robust and debuggable.
 [x] 2.2 Retry Logic (50b67a9)
 
 ### 2.3 Enhanced Cache
-- [ ] Add TTL support (SRTM=never, OSM=30 days)
-- [ ] Add `cache_metadata.json` tracking version, timestamps
-- [ ] Add `invalidate(key)` and `clear_stale()` methods
-- [ ] Add cache corruption detection
+- [x] Add TTL support (SRTM=never, OSM=30 days)
+- [x] Add `cache_metadata.json` tracking version, timestamps
+- [x] Add `invalidate(key)` and `clear_stale()` methods
+- [x] Add cache corruption detection
+[x] 2.3 Enhanced Cache (f3b142b)
 
 ## Files to Modify
 | Action | File |
