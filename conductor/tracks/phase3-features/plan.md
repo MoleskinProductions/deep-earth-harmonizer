@@ -11,12 +11,12 @@ Implement missing spec features for Houdini integration.
 - [x] Add visualization modes (PCA embeddings, biome colors) (29cd937)
 
 ### 3.2 Derived Terrain Attributes
-- [ ] Add `compute_slope()` — gradient magnitude
-- [ ] Add `compute_aspect()` — gradient direction (0-360°)
-- [ ] Add `compute_curvature()` — second derivative
-- [ ] Add `compute_roughness()` — local variance
-- [ ] Add `compute_tpi()` — Topographic Position Index
-- [ ] Add `compute_twi()` — Topographic Wetness Index
+- [x] Add `compute_slope()` — gradient magnitude (4428a81)
+- [x] Add `compute_aspect()` — gradient direction (0-360°) (4428a81)
+- [x] Add `compute_curvature()` — second derivative (4428a81)
+- [x] Add `compute_roughness()` — local variance (4428a81)
+- [x] Add `compute_tpi()` — Topographic Position Index (4428a81)
+- [x] Add `compute_twi()` — Topographic Wetness Index (4428a81)
 
 ### 3.3 Data Quality Tracking
 - [ ] Add `data_quality` field to Harmonizer output
