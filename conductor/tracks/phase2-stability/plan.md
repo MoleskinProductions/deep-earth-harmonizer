@@ -7,8 +7,9 @@ Make the system robust and debuggable.
 
 ### 2.1 Logging Infrastructure
 - [x] Create `logging_config.py` with file + console handlers
-- [~] Add logging to all providers (fetch start/end, cache hits, errors)
-- [ ] Respect `DEEP_EARTH_LOG_LEVEL` environment variable
+- [x] Add logging to all providers (fetch start/end, cache hits, errors)
+- [x] Respect `DEEP_EARTH_LOG_LEVEL` environment variable
+[x] 2.1 Logging Infrastructure (76c6db3)
 
 ### 2.2 Retry Logic
 - [ ] Add `tenacity>=8.0` to dependencies
