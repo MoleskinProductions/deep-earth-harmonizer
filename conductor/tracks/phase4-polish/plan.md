@@ -6,9 +6,9 @@ Improve usability and maintainability.
 ## Tasks
 
 ### 4.1 CLI Runner
-- [ ] Create `cli.py` with `argparse` interface
-- [ ] Support `--bbox`, `--resolution`, `--year`, `--output-dir`
-- [ ] Output summary JSON with paths to cached files
+- [x] Create `cli.py` with `argparse` interface (738b19d)
+- [x] Support `--bbox`, `--resolution`, `--year`, `--output-dir` (738b19d)
+- [x] Output summary JSON with paths to cached files (738b19d)
 
 ### 4.2 Standalone Visualization
 - [ ] Create `preview.py` using `matplotlib`
