@@ -11,14 +11,14 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 
 ---
 
-## [~] Track: Core Stability
+## [x] Track: Core Stability
 > Goal: Make the system robust and debuggable
 
 - [Link](conductor/tracks/phase2-stability)
 
 ---
 
-## [ ] Track: Feature Completion
+## [~] Track: Feature Completion
 > Goal: Implement missing spec features
 
 - [Link](conductor/tracks/phase3-features)

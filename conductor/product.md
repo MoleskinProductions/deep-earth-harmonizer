@@ -14,10 +14,11 @@ The **Deep Earth Harmonizer** is a Houdini tool that transforms geographic coord
 - **Geospatial Analysts:** Visualizing complex multi-modal data in a 3D procedural environment.
 
 ### Core Goals
-1. **Unified Terrain Model:** Create a "Hyper-Point" dataset where elevation, satellite semantics, and infrastructure coexist.
-2. **Procedural Efficiency:** Enable inference-driven procedural generation (e.g., placing trees based on satellite embeddings).
-3. **Seamless Integration:** Provide a native Houdini workflow (HDA) that abstracts complex geospatial APIs.
-4. **Scalability:** Handle large regions through tile-based processing and efficient caching.
+- **Unified Terrain Model:** Create a "Hyper-Point" dataset where elevation, satellite semantics, and infrastructure coexist.
+- **Procedural Efficiency:** Enable inference-driven procedural generation (e.g., placing trees based on satellite embeddings).
+- **Seamless Integration:** Provide a native Houdini workflow (HDA) that abstracts complex geospatial APIs.
+- **Robust Data Acquisition:** Integrated retry logic with exponential backoff and centralized logging for production-grade reliability.
+- **Scalability:** Handle large regions through tile-based processing and efficient caching.
 
 ### Key Features
 - **Parallel Data Fetching:** Async acquisition of SRTM, GEE Embeddings, and OSM data.

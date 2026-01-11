@@ -2,11 +2,10 @@
 
 This document outlines the core technologies and dependencies used in the Deep Earth Harmonizer project.
 
-## Core Infrastructure
-- **Language:** Python 3.9+ 
-  - Required for modern `asyncio` support and compatibility with Houdini's Python environment.
-- **DCC Platform:** Houdini 19.5+
-  - Leverages modern PDG/TOP features and Python 3 integration.
+## Infrastructure & Tools
+- **DCC Platform:** Houdini 21.0+
+- **Language:** Python 3.11+ (Houdini 21.0 default)
+
 
 ## Geospatial Libraries
 - **pyproj:** Handling coordinate reference system (CRS) transformations, specifically WGS84 to UTM.
@@ -22,6 +21,8 @@ This document outlines the core technologies and dependencies used in the Deep E
 
 ## Performance & Scaling
 - **asyncio & aiohttp:** enabling non-blocking, parallel network requests for data fetching.
+- **tenacity:** providing exponential backoff and retry logic for robust external API interactions.
+- **logging:** centralized infrastructure for file and console-based system monitoring.
 - **Houdini PDG (TOPs):** Orchestrating large-scale processing by distributing tile-based work items.
 - **VEX:** Used within Houdini SOPs for per-point attribute calculations and semantic filtering to ensure viewport responsiveness.
 
