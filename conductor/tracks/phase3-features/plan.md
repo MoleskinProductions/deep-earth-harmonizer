@@ -1,4 +1,4 @@
-# Feature Completion - Plan
+# Feature Completion - Plan [checkpoint: 252977b]
 
 ## Goal
 Implement missing spec features for Houdini integration.
