@@ -16,9 +16,9 @@ Improve usability and maintainability.
 - [x] Useful for debugging without Houdini (74fda8b)
 
 ### 4.3 Type Hints & Documentation
-- [~] Add type hints to all public functions
-- [ ] Add docstrings following Google style
-- [ ] Run `mypy` in strict mode, fix errors
+- [x] Add type hints to all public functions (c2c75f5)
+- [x] Add docstrings following Google style (c2c75f5)
+- [x] Run `mypy` in strict mode, fix errors (c2c75f5)
 
 ## Files to Modify
 | Action | File |
