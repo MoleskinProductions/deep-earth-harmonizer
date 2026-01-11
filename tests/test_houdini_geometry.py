@@ -15,6 +15,9 @@ def test_inject_heightfield_calls_hou():
         h = MagicMock()
         h.width = 10
         h.height = 10
+        h.dst_transform = MagicMock()
+        h.dst_transform.__mul__.return_value = (np.zeros((10, 10)), np.zeros((10, 10)))
+        h.layers = {}
         
         height_grid = np.zeros((10, 10))
         embed_grid = np.zeros((64, 10, 10))

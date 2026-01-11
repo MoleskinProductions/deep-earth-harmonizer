@@ -1,38 +1,46 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Union, Dict
 
 from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
 
 logger = logging.getLogger(__name__)
 
-def generate_preview(data: np.ndarray, mode: str = "elevation", title: Optional[str] = None) -> None:
+def generate_preview(data: Union[np.ndarray, Dict[str, np.ndarray]], mode: str = "elevation", title: Optional[str] = None) -> None:
     """
     Generates a standalone visualization of the data using matplotlib.
     
     Args:
-        data: NumPy array of the data to visualize.
+        data: NumPy array of the data to visualize, or dict of layers for 'osm' mode.
         mode: Visualization mode ('elevation', 'pca', 'biome', 'osm').
         title: Optional title for the plot.
+
+    Raises:
+        ValueError: If the mode is unknown or data shape is incorrect.
     """
     plt.figure(figsize=(10, 8))
     
     if mode == "elevation":
-        plt.imshow(data, cmap="terrain")
-        plt.colorbar(label="Elevation (m)")
+        if isinstance(data, np.ndarray):
+            plt.imshow(data, cmap="terrain")
+            plt.colorbar(label="Elevation (m)")
+        else:
+            raise ValueError("Elevation mode expects a NumPy array.")
     elif mode == "pca":
         # embeddings should be (64, H, W)
-        if len(data.shape) == 3:
+        if isinstance(data, np.ndarray) and len(data.shape) == 3:
             h, w = data.shape[1], data.shape[2]
             colors = compute_pca_colors(data)
             plt.imshow(colors.reshape(h, w, 3))
         else:
-            raise ValueError(f"PCA mode expects (D, H, W) data, got {data.shape}")
+            raise ValueError(f"PCA mode expects (D, H, W) NumPy array, got {type(data)}")
     elif mode == "biome":
-        # landuse should be (H, W) strings
-        colors = apply_biome_colors(data)
-        plt.imshow(colors)
+        if isinstance(data, np.ndarray):
+            colors = apply_biome_colors(data)
+            plt.imshow(colors)
+        else:
+            raise ValueError("Biome mode expects a NumPy array.")
     elif mode == "osm":
         # Assume data is a dictionary of layers or a combined mask
         if isinstance(data, dict):
@@ -49,8 +57,10 @@ def generate_preview(data: np.ndarray, mode: str = "elevation", title: Optional[
             water = data.get("water_distance")
             if water is not None:
                 plt.contour(water, levels=[10], colors="blue", linewidths=1)
-        else:
+        elif isinstance(data, np.ndarray):
             plt.imshow(data)
+        else:
+            raise ValueError("OSM mode expects a dict or NumPy array.")
     else:
         raise ValueError(f"Unknown visualization mode: {mode}")
         

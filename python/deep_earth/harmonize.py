@@ -1,10 +1,32 @@
 import numpy as np
 import rasterio
 import math
+from typing import Dict, Optional, Union, List, Any, Tuple
 from rasterio.warp import reproject, Resampling
+from deep_earth.coordinates import CoordinateManager
 
 class Harmonizer:
-    def __init__(self, coordinate_manager, resolution=10):
+    """
+    Orchestrates the resampling and alignment of multiple geospatial data streams.
+    
+    Attributes:
+        cm (CoordinateManager): Coordinate manager for the target region.
+        resolution (float): Master resolution in meters per pixel.
+        width, height (int): Dimensions of the master grid.
+        x_min, y_min, x_max, y_max (float): Bounding box in UTM.
+        dst_transform (rasterio.Affine): Transform matrix for the master grid.
+        dst_crs (str): Target Coordinate Reference System.
+        layers (Dict[str, np.ndarray]): Dictionary of harmonized data layers.
+    """
+    
+    def __init__(self, coordinate_manager: CoordinateManager, resolution: float = 10.0):
+        """
+        Initialize the Harmonizer.
+
+        Args:
+            coordinate_manager: Coordinate manager for the target region.
+            resolution: Master resolution in meters.
+        """
         self.cm = coordinate_manager
         self.resolution = resolution
         
@@ -20,10 +42,20 @@ class Harmonizer:
         )
         self.dst_crs = f"EPSG:{self.cm.utm_epsg}"
         
-        self.layers = {}
+        self.layers: Dict[str, np.ndarray] = {}
 
-    def resample(self, src_path, bands=1):
-        """Resamples the given source GeoTIFF to the master grid."""
+    def resample(self, src_path: str, bands: Union[int, List[int]] = 1) -> np.ndarray:
+        """
+        Resamples the given source GeoTIFF to the master grid.
+
+        Args:
+            src_path: Path to the source GeoTIFF file.
+            bands: Single band index or list of band indices to read.
+
+        Returns:
+            NumPy array of the resampled data.
+        """
+        dst_shape: Union[Tuple[int, int], Tuple[int, int, int]]
         if isinstance(bands, int):
             band_count = 1
             dst_shape = (self.height, self.width)
@@ -46,17 +78,20 @@ class Harmonizer:
             
             return destination
 
-    def add_layers(self, layers_dict):
+    def add_layers(self, layers_dict: Dict[str, np.ndarray]) -> None:
         """
         Adds multiple layers to the harmonizer.
         Each layer must be a NumPy array with (height, width) matching the master grid.
+
+        Args:
+            layers_dict: Dictionary mapping layer names to NumPy arrays.
         """
         for name, data in layers_dict.items():
             if data.shape != (self.height, self.width):
                 raise ValueError(f"Layer dimensions {data.shape} do not match master grid {(self.height, self.width)}")
             self.layers[name] = data
 
-    def compute_quality_layer(self, height_grid=None, embed_grid=None):
+    def compute_quality_layer(self, height_grid: Optional[np.ndarray] = None, embed_grid: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Computes a data quality score (0.0 - 1.0) for each grid cell.
         
@@ -65,6 +100,13 @@ class Harmonizer:
         - DEM + Embeddings: 0.75
         - DEM + OSM: 0.5
         - All: 1.0
+
+        Args:
+            height_grid: Optional elevation grid.
+            embed_grid: Optional embedding grid.
+
+        Returns:
+            NumPy array (float32) of quality scores.
         """
         quality = np.zeros((self.height, self.width), dtype=np.float32)
         

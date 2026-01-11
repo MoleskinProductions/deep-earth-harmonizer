@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from deep_earth.bbox import BoundingBox
 from deep_earth.config import Config
@@ -17,8 +17,18 @@ from deep_earth.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-async def run_fetch_all(bbox: BoundingBox, resolution: float, year: int) -> Dict[str, str]:
-    """Fetch all data sources for the given bbox."""
+async def run_fetch_all(bbox: BoundingBox, resolution: float, year: int) -> Dict[str, Optional[str]]:
+    """
+    Fetch all data sources for the given bbox.
+
+    Args:
+        bbox: Target bounding box.
+        resolution: Requested master resolution.
+        year: Year for embeddings.
+
+    Returns:
+        Dictionary mapping provider names to cached file paths.
+    """
     config = Config()
     creds = CredentialsManager()
     cache = CacheManager(config.cache_path)
@@ -27,10 +37,9 @@ async def run_fetch_all(bbox: BoundingBox, resolution: float, year: int) -> Dict
     gee_a = EarthEngineAdapter(creds, cache)
     osm_a = OverpassAdapter(cache_dir=config.cache_path)
     
-    results = {}
+    results: Dict[str, Optional[str]] = {}
     
     # Run fetches concurrently
-    # Note: Using asyncio.gather for parallel fetching
     srtm_task = srtm_a.fetch(bbox, 30)
     gee_task = gee_a.fetch(bbox, resolution, year)
     osm_task = osm_a.fetch(bbox, resolution)
@@ -45,7 +54,12 @@ async def run_fetch_all(bbox: BoundingBox, resolution: float, year: int) -> Dict
     return results
 
 def main_logic(args: argparse.Namespace) -> None:
-    """Main execution logic for the CLI."""
+    """
+    Main execution logic for the CLI.
+
+    Args:
+        args: Parsed command line arguments.
+    """
     setup_logging()
     
     # Parse bbox: "lat_min,lon_min,lat_max,lon_max"
