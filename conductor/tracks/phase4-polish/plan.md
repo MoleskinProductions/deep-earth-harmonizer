@@ -11,9 +11,9 @@ Improve usability and maintainability.
 - [x] Output summary JSON with paths to cached files (738b19d)
 
 ### 4.2 Standalone Visualization
-- [ ] Create `preview.py` using `matplotlib`
-- [ ] Support previewing elevation, embeddings (PCA), OSM overlay
-- [ ] Useful for debugging without Houdini
+- [x] Create `preview.py` using `matplotlib` (74fda8b)
+- [x] Support previewing elevation, embeddings (PCA), OSM overlay (74fda8b)
+- [x] Useful for debugging without Houdini (74fda8b)
 
 ### 4.3 Type Hints & Documentation
 - [ ] Add type hints to all public functions
