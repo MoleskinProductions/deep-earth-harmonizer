@@ -26,6 +26,20 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 ---
 
 ## [ ] Track: Developer Experience
-> Goal: Improve usability and maintainability
+> Goal: Improve usability and maintainability (CLI, Preview tools)
 
 - [Link](conductor/tracks/phase4-polish)
+
+---
+
+## [ ] Track: Production Hardening
+> Goal: Stabilize core services and scale Earth Engine exports
+
+- [Link](conductor/tracks/phase5-hardening)
+
+---
+
+## [ ] Track: Advanced Houdini & PDG
+> Goal: Deepen Houdini integration and support large-scale orchestration
+
+- [Link](conductor/tracks/phase6-advanced-houdini)
