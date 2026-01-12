@@ -2,6 +2,7 @@ import os
 import json
 import time
 import logging
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Union, cast
 
 logger = logging.getLogger(__name__)
@@ -10,16 +11,22 @@ class CacheManager:
     """
     Manages a local file-based cache for geospatial data.
     
-    Attributes:
-        cache_dir (str): Root directory for the cache.
-        metadata_path (str): Path to the JSON metadata file.
-        metadata (Dict[str, Any]): Dictionary containing cache entry information.
+    Metadata Version 2.0:
+    - version: "2.0"
+    - entries: {
+        "key": {
+            "category": str,
+            "timestamp": str (ISO8601),
+            "ttl_days": int,
+            "extension": str
+        }
+    }
     """
     
-    TTL_CONFIG = {
-        "srtm": None, # Never
-        "osm": 30 * 24 * 3600, # 30 days
-        "embeddings": 365 * 24 * 3600 # 365 days
+    TTL_DAYS = {
+        "srtm": None,      # Never expires
+        "osm": 30,         # 30 days
+        "embeddings": 365  # 1 year
     }
 
     def __init__(self, cache_dir: str):
@@ -36,16 +43,45 @@ class CacheManager:
         self._load_metadata()
 
     def _load_metadata(self) -> None:
-        """Loads cache metadata from disk."""
+        """Loads and migrates cache metadata from disk."""
         if os.path.exists(self.metadata_path):
             try:
                 with open(self.metadata_path, 'r') as f:
                     self.metadata = json.load(f)
+                
+                # Migration logic
+                if self.metadata.get("version") == "1.0":
+                    self._migrate_v1_to_v2()
+                    
             except (json.JSONDecodeError, IOError):
                 logger.error(f"Failed to load cache metadata from {self.metadata_path}. Initializing new metadata.")
-                self.metadata = {"version": "1.0", "entries": {}}
+                self.metadata = {"version": "2.0", "entries": {}}
         else:
-            self.metadata = {"version": "1.0", "entries": {}}
+            self.metadata = {"version": "2.0", "entries": {}}
+
+    def _migrate_v1_to_v2(self) -> None:
+        """Migrates metadata from version 1.0 to 2.0."""
+        logger.info("Migrating cache metadata from v1.0 to v2.0")
+        new_entries = {}
+        for key, entry in self.metadata.get("entries", {}).items():
+            created = entry.get("created", time.time())
+            timestamp = datetime.fromtimestamp(created, tz=timezone.utc).isoformat()
+            
+            category = entry.get("category", "unknown")
+            ttl_days = self.TTL_DAYS.get(category)
+            
+            new_entries[key] = {
+                "category": category,
+                "timestamp": timestamp,
+                "ttl_days": ttl_days,
+                "extension": entry.get("extension", "tif")
+            }
+        
+        self.metadata = {
+            "version": "2.0",
+            "entries": new_entries
+        }
+        self._save_metadata()
 
     def _save_metadata(self) -> None:
         """Saves cache metadata to disk."""
@@ -56,59 +92,34 @@ class CacheManager:
             logger.error(f"Failed to save cache metadata: {e}")
 
     def _get_full_path(self, key: str, category: str, extension: str = "tif") -> str:
-        """
-        Calculates the full filesystem path for a cache entry.
-
-        Args:
-            key: Unique key for the entry.
-            category: Data category (e.g., 'srtm', 'osm').
-            extension: File extension.
-
-        Returns:
-            The full path to the file.
-        """
+        """Calculates the full filesystem path for a cache entry."""
         category_dir = os.path.join(self.cache_dir, category)
         if not os.path.exists(category_dir):
             os.makedirs(category_dir)
         return os.path.join(category_dir, f"{key}.{extension}")
 
     def _is_expired(self, key: str) -> bool:
-        """
-        Checks if a cache entry has exceeded its TTL.
-
-        Args:
-            key: Unique key for the entry.
-
-        Returns:
-            True if expired, False otherwise.
-        """
+        """Checks if a cache entry has exceeded its TTL."""
         if key not in self.metadata["entries"]:
             return False 
             
         entry = self.metadata["entries"][key]
-        category = entry.get("category")
-        created = entry.get("created")
+        timestamp_str = entry.get("timestamp")
+        ttl_days = entry.get("ttl_days")
         
-        ttl = self.TTL_CONFIG.get(category)
-        if ttl is None or created is None:
+        if timestamp_str is None or ttl_days is None:
             return False
             
-        age = time.time() - created
-        return cast(bool, age > ttl)
+        try:
+            created = datetime.fromisoformat(timestamp_str)
+            now = datetime.now(timezone.utc)
+            age_days = (now - created).total_seconds() / (24 * 3600)
+            return cast(bool, age_days > ttl_days)
+        except (ValueError, TypeError):
+            return True # Assume expired if timestamp is invalid
 
     def save(self, key: str, data: bytes, category: str, extension: str = "tif") -> str:
-        """
-        Saves binary data to the cache.
-
-        Args:
-            key: Unique key for the entry.
-            data: Binary data to save.
-            category: Data category.
-            extension: File extension.
-
-        Returns:
-            The path to the saved file.
-        """
+        """Saves binary data to the cache."""
         path = self._get_full_path(key, category, extension)
         try:
             with open(path, "wb") as f:
@@ -116,7 +127,8 @@ class CacheManager:
             
             self.metadata["entries"][key] = {
                 "category": category,
-                "created": time.time(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "ttl_days": self.TTL_DAYS.get(category),
                 "extension": extension
             }
             self._save_metadata()
@@ -126,17 +138,7 @@ class CacheManager:
             raise
 
     def exists(self, key: str, category: str, extension: str = "tif") -> bool:
-        """
-        Checks if a key exists in the cache and is not expired.
-
-        Args:
-            key: Unique key for the entry.
-            category: Data category.
-            extension: File extension.
-
-        Returns:
-            True if it exists and is valid, False otherwise.
-        """
+        """Checks if a key exists in the cache and is not expired."""
         if self._is_expired(key):
              self.invalidate(key)
              return False
@@ -145,17 +147,7 @@ class CacheManager:
         return os.path.exists(path)
 
     def get_path(self, key: str, category: str, extension: str = "tif") -> Optional[str]:
-        """
-        Returns the path to a cached file if it exists and is not expired.
-
-        Args:
-            key: Unique key for the entry.
-            category: Data category.
-            extension: File extension.
-
-        Returns:
-            The path to the file, or None if it doesn't exist or is expired.
-        """
+        """Returns the path to a cached file if it exists and is not expired."""
         if self._is_expired(key):
              self.invalidate(key)
              return None
@@ -166,12 +158,7 @@ class CacheManager:
         return None
 
     def invalidate(self, key: str) -> None:
-        """
-        Removes an entry from the cache.
-
-        Args:
-            key: Unique key for the entry.
-        """
+        """Removes an entry from the cache."""
         if key in self.metadata["entries"]:
             entry = self.metadata["entries"][key]
             path = self._get_full_path(key, entry["category"], entry.get("extension", "tif"))
@@ -183,4 +170,14 @@ class CacheManager:
             
             del self.metadata["entries"][key]
             self._save_metadata()
+            
+    def clear_expired(self) -> int:
+        """Clears all expired entries from the cache."""
+        keys = list(self.metadata["entries"].keys())
+        cleared_count = 0
+        for key in keys:
+            if self._is_expired(key):
+                self.invalidate(key)
+                cleared_count += 1
+        return cleared_count
 

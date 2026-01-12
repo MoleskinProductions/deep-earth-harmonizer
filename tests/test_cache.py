@@ -3,6 +3,7 @@ import pytest
 import shutil
 import json
 import time
+from datetime import datetime, timezone, timedelta
 from deep_earth.cache import CacheManager
 
 @pytest.fixture
@@ -47,24 +48,26 @@ def test_cache_metadata_creation(temp_cache_dir):
     
     with open(meta_path, 'r') as f:
         meta = json.load(f)
+        assert meta["version"] == "2.0"
         assert "entries" in meta
         assert key in meta["entries"]
         assert meta["entries"][key]["category"] == "srtm"
-        assert "created" in meta["entries"][key]
+        assert "timestamp" in meta["entries"][key]
+        assert "ttl_days" in meta["entries"][key]
 
 def test_cache_ttl_expiration(temp_cache_dir):
     manager = CacheManager(temp_cache_dir)
-    manager.TTL_CONFIG = {"short_lived": 0.1} # 0.1 seconds
-    
+    # Manually set an expired timestamp in metadata
     key = "ttl_test"
-    data = b"data"
-    manager.save(key, data, category="short_lived")
+    manager.save(key, b"data", category="osm")
     
-    assert manager.exists(key, category="short_lived")
+    # 31 days ago
+    expired_ts = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat()
+    manager.metadata["entries"][key]["timestamp"] = expired_ts
+    manager._save_metadata()
     
-    time.sleep(0.2)
     # Should be expired
-    assert not manager.exists(key, category="short_lived")
+    assert not manager.exists(key, category="osm")
 
 def test_cache_invalidation(temp_cache_dir):
     manager = CacheManager(temp_cache_dir)
@@ -74,6 +77,39 @@ def test_cache_invalidation(temp_cache_dir):
     assert manager.exists(key, category="srtm")
     manager.invalidate(key)
     assert not manager.exists(key, category="srtm")
+
+def test_cache_migration_v1_to_v2(temp_cache_dir):
+    # Create v1.0 metadata
+    os.makedirs(temp_cache_dir, exist_ok=True)
+    meta_path = os.path.join(temp_cache_dir, "cache_metadata.json")
+    created_time = time.time() - 3600 # 1 hour ago
+    v1_meta = {
+        "version": "1.0",
+        "entries": {
+            "old_entry": {
+                "category": "srtm",
+                "created": created_time,
+                "extension": "tif"
+            }
+        }
+    }
+    with open(meta_path, 'w') as f:
+        json.dump(v1_meta, f)
+        
+    # Instantiate manager
+    manager = CacheManager(temp_cache_dir)
+    
+    # Check if migrated
+    assert manager.metadata["version"] == "2.0"
+    assert "old_entry" in manager.metadata["entries"]
+    entry = manager.metadata["entries"]["old_entry"]
+    assert "timestamp" in entry
+    assert entry["category"] == "srtm"
+    assert entry["ttl_days"] is None
+    
+    # Verify timestamp conversion
+    dt = datetime.fromisoformat(entry["timestamp"])
+    assert abs(dt.timestamp() - created_time) < 1.0
 
 def test_cache_metadata_corruption(temp_cache_dir):
     os.makedirs(temp_cache_dir, exist_ok=True)
