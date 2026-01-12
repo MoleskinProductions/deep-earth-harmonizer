@@ -22,6 +22,8 @@ The **Deep Earth Harmonizer** is a Houdini tool that transforms geographic coord
 
 ### Key Features
 - **Parallel Data Fetching:** Async acquisition of SRTM, GEE Embeddings, and OSM data.
+- **CLI Runner:** Headless execution via `python -m deep_earth` for batch pre-fetching and pipeline automation.
+- **Standalone Preview:** Rapid data verification using Matplotlib-based visualizations (Elevation, PCA, Biome) outside of Houdini.
 - **Harmonization Engine:** Reprojection and resampling of disparate data sources into a master grid.
 - **Embedding Injection:** 64-dimensional satellite embeddings stored as point or heightfield attributes.
 - **OSM Rasterization:** Conversion of vector infrastructure into distance fields and semantic masks.

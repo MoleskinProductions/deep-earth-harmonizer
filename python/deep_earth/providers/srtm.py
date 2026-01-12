@@ -5,7 +5,7 @@ import rasterio
 from typing import Any, Union, Dict, Optional
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
-from deep_earth.bbox import BoundingBox
+from deep_earth.region import RegionContext
 from deep_earth.retry import fetch_with_retry
 from deep_earth.credentials import CredentialsManager
 from deep_earth.cache import CacheManager
@@ -31,7 +31,7 @@ class SRTMAdapter(DataProviderAdapter):
         self.cache = cache
         self.api_url = "https://portal.opentopography.org/API/globaldem"
 
-    def get_cache_key(self, bbox: BoundingBox, resolution: float) -> str:
+    def get_cache_key(self, bbox: RegionContext, resolution: float) -> str:
         """Generates a unique cache key for SRTM data."""
         return f"srtm_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}"
 
@@ -39,7 +39,7 @@ class SRTMAdapter(DataProviderAdapter):
         """Checks if OpenTopography API key is present."""
         return self.credentials.get_opentopography_key() is not None
 
-    async def fetch(self, bbox: BoundingBox, resolution: float) -> str:
+    async def fetch(self, bbox: RegionContext, resolution: float) -> str:
         """
         Fetches SRTM data from OpenTopography and returns the path to the cached file.
 

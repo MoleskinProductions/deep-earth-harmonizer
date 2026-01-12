@@ -82,6 +82,18 @@ class CredentialsManager:
         if env_val:
             return env_val
         return cast(Optional[str], self.data.get("opentopography", {}).get("api_key"))
+
+    def get_gcs_bucket(self) -> Optional[str]:
+        """
+        Get Google Cloud Storage bucket name for large exports.
+
+        Returns:
+            The bucket name if found, None otherwise.
+        """
+        env_val = os.environ.get("DEEP_EARTH_GCS_BUCKET")
+        if env_val:
+            return env_val
+        return cast(Optional[str], self.data.get("earth_engine", {}).get("gcs_bucket"))
     
     def validate(self) -> Dict[str, bool]:
         """

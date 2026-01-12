@@ -56,7 +56,7 @@ async def test_cli_execution_summary(tmp_path):
         mock_cache_instance.get_path.return_value = str(tmp_path / "osm.json")
         
         from deep_earth.cli import run_fetch_all
-        from deep_earth.bbox import BoundingBox
+        from deep_earth.region import RegionContext as BoundingBox
         
         bbox = BoundingBox(45.0, 45.1, -93.0, -92.9)
         results = await run_fetch_all(bbox, resolution=10, year=2023)

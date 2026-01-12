@@ -16,7 +16,7 @@ Address critical edge cases and stabilize core services for production-scale use
 - [x] Add unit test with mock `hou` to verify correct point creation calls (8cb2180)
 
 ### 5.3 Earth Engine Scaling
-- [ ] Refactor `EarthEngineAdapter.fetch` to use `ee.batch.Export.image.toDrive` or Cloud Storage
+- [~] Refactor `EarthEngineAdapter.fetch` to use `ee.batch.Export.image.toDrive` or Cloud Storage
 - [ ] Implement polling logic with exponential backoff
 - [ ] Surface partial results via `f@data_quality` if some layers fail
 

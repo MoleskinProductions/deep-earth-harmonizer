@@ -2,7 +2,7 @@ import pytest
 import logging
 from unittest.mock import MagicMock, AsyncMock, patch
 from deep_earth.providers.srtm import SRTMAdapter
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 
 @pytest.fixture
 def mock_credentials():

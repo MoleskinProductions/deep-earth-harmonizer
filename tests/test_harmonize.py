@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import rasterio
 from deep_earth.harmonize import Harmonizer
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 
 @pytest.fixture
 def coordinate_manager():

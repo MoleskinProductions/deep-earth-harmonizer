@@ -2,7 +2,7 @@ import pytest
 import logging
 from unittest.mock import patch, MagicMock, AsyncMock
 from deep_earth.providers.earth_engine import EarthEngineAdapter
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 
 @pytest.fixture
 def mock_credentials():
@@ -17,7 +17,7 @@ def mock_cache():
 
 @pytest.fixture
 def coordinate_manager():
-    return CoordinateManager(lat_min=44.9, lat_max=45.1, lon_min=-93.1, lon_max=-92.9)
+    return CoordinateManager(lat_min=44.97, lat_max=44.98, lon_min=-93.27, lon_max=-93.26)
 
 @pytest.mark.asyncio
 async def test_ee_logging_cache_hit(mock_credentials, mock_cache, coordinate_manager, caplog):
@@ -47,9 +47,9 @@ async def test_ee_logging_cache_miss(mock_credentials, mock_cache, coordinate_ma
                 mock_collection.filterDate.return_value = mock_collection
                 mock_collection.size.return_value.getInfo.return_value = 1
                 mock_collection.mosaic.return_value.clip.return_value.reproject.return_value = MagicMock()
-
+                
                 # Mock export
-                with patch.object(adapter, "_export_and_poll", return_value="/tmp/exported.tif"):
+                with patch.object(adapter, "_fetch_direct", return_value="/tmp/exported.tif"):
                     with caplog.at_level(logging.DEBUG, logger="deep_earth.providers.earth_engine"):
                         await adapter.fetch(coordinate_manager, resolution=10)
         

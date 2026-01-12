@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
 from deep_earth.harmonize import Harmonizer
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 from deep_earth.providers.osm import OverpassAdapter
 
 @pytest.fixture
@@ -49,7 +49,7 @@ def test_harmonizer_add_layers_validation(coordinate_manager):
 async def test_harmonizer_osm_integration_flow(coordinate_manager):
     """Test the end-to-end integration flow between OverpassAdapter and Harmonizer."""
     # We use a real CoordinateManager for this one to ensure projection works
-    from deep_earth.coordinates import CoordinateManager as RealCM
+    from deep_earth.region import RegionContext as RealCM
     cm = RealCM(lat_min=44.97, lat_max=44.99, lon_min=-93.28, lon_max=-93.25)
     
     h = Harmonizer(cm, resolution=10)

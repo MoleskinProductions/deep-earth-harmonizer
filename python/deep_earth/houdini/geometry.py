@@ -1,12 +1,12 @@
 import numpy as np
 from typing import Any, Optional
 from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext
 from deep_earth.harmonize import Harmonizer
 
 def inject_heightfield(
     geo: Any, 
-    coordinate_manager: CoordinateManager, 
+    coordinate_manager: RegionContext, 
     harmonizer: Harmonizer, 
     height_grid: np.ndarray, 
     embed_grid: np.ndarray, 
@@ -20,7 +20,7 @@ def inject_heightfield(
     
     Args:
         geo: The Houdini geometry object (hou.Geometry).
-        coordinate_manager: The CoordinateManager instance for the region.
+        coordinate_manager: The RegionContext instance for the region.
         harmonizer: The Harmonizer instance containing resampled layers.
         height_grid: (H, W) elevation grid.
         embed_grid: (64, H, W) embedding grid.

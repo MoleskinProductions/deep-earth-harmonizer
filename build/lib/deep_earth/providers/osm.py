@@ -4,7 +4,7 @@ import aiohttp
 import numpy as np
 import pyproj
 import logging
-from typing import Any, Union
+from typing import Any, Union, Dict, List, Optional, Tuple, cast
 from shapely.geometry import LineString, Polygon, Point
 from shapely.ops import transform
 from rasterio.features import rasterize
@@ -25,15 +25,14 @@ class OverpassAdapter(DataProviderAdapter):
     """
     DEFAULT_API_URL = "https://overpass-api.de/api/interpreter"
 
-    def __init__(self, base_url: str = None, fallback_urls: list[str] = None, cache_dir: str = None):
+    def __init__(self, base_url: Optional[str] = None, fallback_urls: Optional[List[str]] = None, cache_dir: Optional[str] = None):
         """
         Initialize the OverpassAdapter.
 
         Args:
-            base_url (str, optional): The base URL for the Overpass API. 
-                                      Defaults to the main public instance.
-            fallback_urls (list[str], optional): List of fallback API URLs.
-            cache_dir (str, optional): Custom cache directory.
+            base_url: The base URL for the Overpass API.
+            fallback_urls: List of fallback API URLs.
+            cache_dir: Custom cache directory.
         """
         self.base_url = base_url or self.DEFAULT_API_URL
         self.fallback_urls = fallback_urls or []
@@ -43,20 +42,24 @@ class OverpassAdapter(DataProviderAdapter):
             cache_dir = config.cache_path
         self.cache = CacheManager(cache_dir)
 
-    def _build_query(self, bbox: tuple[float, float, float, float]) -> str:
+    def _build_query(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]]) -> str:
         """
         Construct an Overpass QL query for the given bounding box.
         
         Args:
-            bbox: Tuple of (min_lat, min_lon, max_lat, max_lon)
+            bbox: BoundingBox or Tuple of (min_lat, min_lon, max_lat, max_lon).
             
         Returns:
-            str: The formatted Overpass QL query string.
+            The formatted Overpass QL query string.
         """
-        min_lat, min_lon, max_lat, max_lon = bbox
+        if isinstance(bbox, BoundingBox):
+            bbox_tuple = bbox.as_tuple()
+        else:
+            bbox_tuple = bbox
+            
+        min_lat, min_lon, max_lat, max_lon = bbox_tuple
         bbox_str = f"{min_lat},{min_lon},{max_lat},{max_lon}"
         
-        # Using 'out geom' to get geometry directly in ways/relations
         query = f"""
         [out:json][timeout:25];
         (
@@ -73,9 +76,15 @@ class OverpassAdapter(DataProviderAdapter):
         """
         return query.strip()
 
-    def _parse_elements(self, elements: list[dict]) -> list[dict]:
+    def _parse_elements(self, elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Parse Overpass JSON elements into Shapely geometries and categorized features.
+
+        Args:
+            elements: List of element dictionaries from Overpass JSON.
+
+        Returns:
+            List of parsed feature dictionaries.
         """
         features = []
         for el in elements:
@@ -111,7 +120,7 @@ class OverpassAdapter(DataProviderAdapter):
                 feature_type = "natural"
                 shape = Polygon(coords) if len(coords) >= 3 else Point(coords[0])
             else:
-                continue # Skip unknown
+                continue
             
             if shape:
                 features.append({
@@ -122,8 +131,9 @@ class OverpassAdapter(DataProviderAdapter):
                 })
         return features
 
-    def get_cache_key(self, bbox: Union[BoundingBox, tuple], resolution: float) -> str:
+    def get_cache_key(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]], resolution: float) -> str:
         """Generates a unique cache key for the given parameters."""
+        bbox_tuple: Tuple[float, float, float, float]
         if isinstance(bbox, BoundingBox):
             bbox_tuple = bbox.as_tuple()
         else:
@@ -131,18 +141,18 @@ class OverpassAdapter(DataProviderAdapter):
         bbox_str = f"{bbox_tuple[0]},{bbox_tuple[1]},{bbox_tuple[2]},{bbox_tuple[3]}"
         return hashlib.md5(bbox_str.encode()).hexdigest()
 
-    async def fetch(self, bbox: Union[BoundingBox, tuple], resolution: float) -> dict:
+    async def fetch(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]], resolution: float) -> Dict[str, Any]:
         """
         Fetch data from Overpass API.
         
         Args:
-            bbox: BoundingBox or tuple of (min_lat, min_lon, max_lat, max_lon)
-            resolution: Not used for Overpass fetch, but required by interface.
+            bbox: BoundingBox or tuple of (min_lat, min_lon, max_lat, max_lon).
+            resolution: Requested resolution (not used for fetch, but for cache key).
             
         Returns:
-            dict: The JSON response from Overpass.
+            The JSON response from Overpass.
         """
-        # Convert BoundingBox to tuple if needed
+        bbox_tuple: Tuple[float, float, float, float]
         if isinstance(bbox, BoundingBox):
             bbox_tuple = bbox.as_tuple()
         else:
@@ -151,46 +161,51 @@ class OverpassAdapter(DataProviderAdapter):
         logger.info(f"Fetching OSM data for bbox {bbox_tuple}")
         key = self.get_cache_key(bbox_tuple, resolution)
         
-        # Check cache
         if self.cache.exists(key, "osm", "json"):
             logger.debug(f"Cache hit for {key}")
             path = self.cache.get_path(key, "osm", "json")
-            with open(path, "r") as f:
-                return json.load(f)
+            if path:
+                with open(path, "r") as f:
+                    return cast(Dict[str, Any], json.load(f))
 
         logger.debug(f"Cache miss for {key}")
         query = self._build_query(bbox_tuple)
         
         async with aiohttp.ClientSession() as session:
             try:
-                # Overpass API takes the query in the 'data' parameter
                 data = await fetch_with_retry(session, self.base_url, params={'data': query})
                 logger.info("Fetched OSM data successfully")
                 self.cache.save(key, data, "osm", "json")
-                return json.loads(data)
+                return cast(Dict[str, Any], json.loads(data))
             except Exception as e:
                 logger.error(f"Failed to fetch OSM: {e}")
-                raise e
+                raise
 
     def validate_credentials(self) -> bool:
-        # Overpass API (public) typically doesn't require credentials
+        """OSM Overpass API is public."""
         return True
 
-    def transform_to_grid(self, data: list[dict], target_grid: Any) -> dict[str, np.ndarray]:
+    def transform_to_grid(self, data: List[Dict[str, Any]], target_grid: Any) -> Dict[str, np.ndarray]:
         """
         Transforms parsed OSM features into a set of raster layers aligned with the target grid.
+
+        Args:
+            data: List of parsed feature dictionaries.
+            target_grid: The Harmonizer instance providing the target grid metadata.
+
+        Returns:
+            Dictionary mapping layer names to NumPy arrays.
         """
         width, height = target_grid.width, target_grid.height
         transform_meta = target_grid.dst_transform
         
         # Prepare coordinate transformer from WGS84 to Target CRS
-        # OSM is WGS84 (EPSG:4326)
         wgs84 = pyproj.CRS("EPSG:4326")
         target_crs = pyproj.CRS(target_grid.dst_crs)
         project_func = pyproj.Transformer.from_crs(wgs84, target_crs, always_xy=True).transform
         
         # Initialize result layers
-        layers = {
+        layers: Dict[str, np.ndarray] = {
             "road_distance": np.full((height, width), 1e6, dtype=np.float32),
             "water_distance": np.full((height, width), 1e6, dtype=np.float32),
             "natural_distance": np.full((height, width), 1e6, dtype=np.float32),
@@ -201,8 +216,7 @@ class OverpassAdapter(DataProviderAdapter):
             "highway": np.full((height, width), "", dtype=object)
         }
         
-        # We need a list of shapes for each category to rasterize
-        categorized_shapes = {
+        categorized_shapes: Dict[str, List[Any]] = {
             "road": [],
             "waterway": [],
             "building": [],
@@ -219,18 +233,14 @@ class OverpassAdapter(DataProviderAdapter):
 
         # 0. Rasterize Highways (Strings)
         if categorized_shapes["road"]:
-            # Map highway types to IDs for rasterization
             highway_types = sorted(list(set(f["tags"].get("highway", "unknown") for s, f in categorized_shapes["road"])))
             type_to_id = {t: i+1 for i, t in enumerate(highway_types)}
             id_to_type = {i+1: t for i, t in enumerate(highway_types)}
             id_to_type[0] = ""
             
             hw_shapes = [(s, type_to_id.get(f["tags"].get("highway", "unknown"), 0)) for s, f in categorized_shapes["road"]]
-            # Use a temporary int32 grid for rasterization
             hw_ids = rasterize(hw_shapes, out_shape=(height, width), transform=transform_meta)
             
-            # Map back to strings
-            # This is a bit slow for large grids but works for object arrays
             v_id_to_type = np.vectorize(lambda x: id_to_type.get(x, ""))
             layers["highway"] = v_id_to_type(hw_ids).astype(object)
 
@@ -240,23 +250,21 @@ class OverpassAdapter(DataProviderAdapter):
             mask = rasterize(shapes, out_shape=(height, width), transform=transform_meta)
             layers["building_mask"] = mask
             
-            # Rasterize building heights
             height_shapes = [(s, f["tags"].get("height", 0)) for s, f in categorized_shapes["building"]]
             layers["building_height"] = rasterize(height_shapes, out_shape=(height, width), transform=transform_meta)
 
         # 2. Rasterize Landuse (categorical)
         if categorized_shapes["landuse"]:
             landuse_types = sorted(list(set(f["tags"].get("landuse", "unknown") for s, f in categorized_shapes["landuse"])))
-            type_to_id = {t: i+1 for i, t in enumerate(landuse_types)}
-            id_to_type = {i+1: t for i, t in enumerate(landuse_types)}
-            id_to_type[0] = ""
+            type_to_id_lu = {t: i+1 for i, t in enumerate(landuse_types)}
+            id_to_type_lu = {i+1: t for i, t in enumerate(landuse_types)}
+            id_to_type_lu[0] = ""
             
-            lu_shapes = [(s, type_to_id.get(f["tags"].get("landuse", "unknown"), 0)) for s, f in categorized_shapes["landuse"]]
+            lu_shapes = [(s, type_to_id_lu.get(f["tags"].get("landuse", "unknown"), 0)) for s, f in categorized_shapes["landuse"]]
             lu_ids = rasterize(lu_shapes, out_shape=(height, width), transform=transform_meta)
             layers["landuse_id"] = lu_ids
             
-            # Map back to strings for visualization
-            v_lu_id_to_type = np.vectorize(lambda x: id_to_type.get(x, ""))
+            v_lu_id_to_type = np.vectorize(lambda x: id_to_type_lu.get(x, ""))
             layers["landuse"] = v_lu_id_to_type(lu_ids).astype(object)
 
         # 3. Distance Fields (Roads, Water, Natural)

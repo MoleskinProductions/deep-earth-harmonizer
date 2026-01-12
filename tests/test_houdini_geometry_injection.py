@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
 from deep_earth.houdini.geometry import inject_heightfield
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 from deep_earth.harmonize import Harmonizer
 
 def test_inject_heightfield_sets_positions():

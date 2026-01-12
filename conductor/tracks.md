@@ -32,7 +32,7 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 
 ---
 
-## [ ] Track: Production Hardening
+## [~] Track: Production Hardening
 > Goal: Stabilize core services and scale Earth Engine exports
 
 - [Link](conductor/tracks/phase5-hardening)

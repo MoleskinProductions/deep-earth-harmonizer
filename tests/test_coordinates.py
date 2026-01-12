@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 
 def test_invalid_bbox():
     # Latitude out of range

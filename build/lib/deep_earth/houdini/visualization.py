@@ -1,15 +1,16 @@
 import numpy as np
 from sklearn.decomposition import PCA
+from typing import Dict, List, Optional, cast
 
 def compute_pca_colors(embeddings: np.ndarray) -> np.ndarray:
     """
     Reduces high-dimensional embeddings to 3D using PCA and maps to [0, 1] for RGB.
     
     Args:
-        embeddings: NumPy array of shape (N, D) or (D, H, W)
+        embeddings: NumPy array of shape (N, D) or (D, H, W).
         
     Returns:
-        NumPy array of shape (N, 3) representing RGB colors.
+        NumPy array of shape (N, 3) representing RGB colors in range [0, 1].
     """
     if len(embeddings.shape) == 3:
         # (D, H, W) -> (H*W, D)
@@ -32,10 +33,15 @@ def compute_pca_colors(embeddings: np.ndarray) -> np.ndarray:
     range_vals[range_vals == 0] = 1.0
     
     normalized = (pca_result - min_vals) / range_vals
-    return normalized
+    return cast(np.ndarray, normalized)
 
-def get_biome_color_map():
-    """Returns a default mapping from landuse/natural tags to RGB colors."""
+def get_biome_color_map() -> Dict[str, List[float]]:
+    """
+    Returns a default mapping from landuse/natural tags to RGB colors.
+
+    Returns:
+        Dictionary mapping strings to 3-element lists of floats.
+    """
     return {
         "forest": [0.1, 0.5, 0.1],
         "wood": [0.1, 0.4, 0.1],
@@ -54,7 +60,7 @@ def get_biome_color_map():
         "sand": [0.9, 0.8, 0.5]
     }
 
-def apply_biome_colors(landuse_data: np.ndarray, color_map: dict = None) -> np.ndarray:
+def apply_biome_colors(landuse_data: np.ndarray, color_map: Optional[Dict[str, List[float]]] = None) -> np.ndarray:
     """
     Maps categorical landuse data (strings) to RGB colors.
     

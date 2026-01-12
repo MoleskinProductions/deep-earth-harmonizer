@@ -1,16 +1,27 @@
 import numpy as np
+from typing import Any, Optional
 from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
+from deep_earth.coordinates import CoordinateManager
+from deep_earth.harmonize import Harmonizer
 
-def inject_heightfield(geo, coordinate_manager, harmonizer, height_grid, embed_grid, viz_mode=None):
+def inject_heightfield(
+    geo: Any, 
+    coordinate_manager: CoordinateManager, 
+    harmonizer: Harmonizer, 
+    height_grid: np.ndarray, 
+    embed_grid: np.ndarray, 
+    viz_mode: Optional[str] = None
+) -> None:
     """
     Injects elevation and embedding data into a Houdini heightfield.
+    
     Note: This uses the 'hou' module which is only available inside Houdini.
     We use a generic 'geo' object to allow for some level of testing/mocking.
     
     Args:
-        geo: The Houdini geometry object.
-        coordinate_manager: The CoordinateManager instance.
-        harmonizer: The Harmonizer instance.
+        geo: The Houdini geometry object (hou.Geometry).
+        coordinate_manager: The CoordinateManager instance for the region.
+        harmonizer: The Harmonizer instance containing resampled layers.
         height_grid: (H, W) elevation grid.
         embed_grid: (64, H, W) embedding grid.
         viz_mode: Optional visualization mode ('pca', 'biome').

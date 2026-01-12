@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Dict, Optional
 import numpy as np
-from deep_earth.bbox import BoundingBox
+from deep_earth.region import RegionContext
 
 class DataProviderAdapter(ABC):
     """
@@ -9,12 +9,12 @@ class DataProviderAdapter(ABC):
     """
     
     @abstractmethod
-    async def fetch(self, bbox: Union[BoundingBox, Any], resolution: float) -> Any:
+    async def fetch(self, bbox: Union[RegionContext, Any], resolution: float) -> Any:
         """
         Fetches data for the given bounding box and resolution.
 
         Args:
-            bbox: BoundingBox instance or compatible geometry.
+            bbox: RegionContext instance or compatible geometry.
             resolution: Requested resolution in meters.
 
         Returns:
@@ -33,12 +33,12 @@ class DataProviderAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_cache_key(self, bbox: Union[BoundingBox, Any], resolution: float) -> str:
+    def get_cache_key(self, bbox: Union[RegionContext, Any], resolution: float) -> str:
         """
         Generates a unique cache key for the given parameters.
 
         Args:
-            bbox: BoundingBox instance or compatible geometry.
+            bbox: RegionContext instance or compatible geometry.
             resolution: Requested resolution in meters.
 
         Returns:

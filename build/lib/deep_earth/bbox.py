@@ -3,7 +3,7 @@ Unified BoundingBox representation for all data providers.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, cast, Tuple
 import math
 
 
@@ -23,7 +23,7 @@ class BoundingBox:
     # Cached UTM values (computed on first access)
     _utm_epsg: Optional[int] = None
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate bounding box coordinates."""
         if not (-90 <= self.lat_min <= 90) or not (-90 <= self.lat_max <= 90):
             raise ValueError(f"Invalid latitude values: {self.lat_min}, {self.lat_max}")
@@ -51,7 +51,7 @@ class BoundingBox:
             zone_number = int((self.centroid_lon + 180) / 6) + 1
             base = 32600 if self.centroid_lat >= 0 else 32700
             object.__setattr__(self, '_utm_epsg', base + zone_number)
-        return self._utm_epsg
+        return cast(int, self._utm_epsg)
     
     @property
     def utm_zone(self) -> str:
@@ -60,11 +60,11 @@ class BoundingBox:
         hemi = 'N' if self.centroid_lat >= 0 else 'S'
         return f"{zone_number}{hemi}"
     
-    def as_tuple(self) -> tuple[float, float, float, float]:
+    def as_tuple(self) -> Tuple[float, float, float, float]:
         """Return as (lat_min, lon_min, lat_max, lon_max) tuple for Overpass API."""
         return (self.lat_min, self.lon_min, self.lat_max, self.lon_max)
     
-    def as_wsen(self) -> tuple[float, float, float, float]:
+    def as_wsen(self) -> Tuple[float, float, float, float]:
         """Return as (west, south, east, north) / (lon_min, lat_min, lon_max, lat_max)."""
         return (self.lon_min, self.lat_min, self.lon_max, self.lat_max)
     

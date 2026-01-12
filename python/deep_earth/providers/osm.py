@@ -10,7 +10,7 @@ from shapely.ops import transform
 from rasterio.features import rasterize
 from scipy.ndimage import distance_transform_edt
 
-from deep_earth.bbox import BoundingBox
+from deep_earth.region import RegionContext
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
@@ -42,17 +42,17 @@ class OverpassAdapter(DataProviderAdapter):
             cache_dir = config.cache_path
         self.cache = CacheManager(cache_dir)
 
-    def _build_query(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]]) -> str:
+    def _build_query(self, bbox: Union[RegionContext, Tuple[float, float, float, float]]) -> str:
         """
         Construct an Overpass QL query for the given bounding box.
         
         Args:
-            bbox: BoundingBox or Tuple of (min_lat, min_lon, max_lat, max_lon).
+            bbox: RegionContext instance or Tuple of (min_lat, min_lon, max_lat, max_lon).
             
         Returns:
             The formatted Overpass QL query string.
         """
-        if isinstance(bbox, BoundingBox):
+        if isinstance(bbox, RegionContext):
             bbox_tuple = bbox.as_tuple()
         else:
             bbox_tuple = bbox
@@ -131,29 +131,29 @@ class OverpassAdapter(DataProviderAdapter):
                 })
         return features
 
-    def get_cache_key(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]], resolution: float) -> str:
+    def get_cache_key(self, bbox: Union[RegionContext, Tuple[float, float, float, float]], resolution: float) -> str:
         """Generates a unique cache key for the given parameters."""
         bbox_tuple: Tuple[float, float, float, float]
-        if isinstance(bbox, BoundingBox):
+        if isinstance(bbox, RegionContext):
             bbox_tuple = bbox.as_tuple()
         else:
             bbox_tuple = bbox
         bbox_str = f"{bbox_tuple[0]},{bbox_tuple[1]},{bbox_tuple[2]},{bbox_tuple[3]}"
         return hashlib.md5(bbox_str.encode()).hexdigest()
 
-    async def fetch(self, bbox: Union[BoundingBox, Tuple[float, float, float, float]], resolution: float) -> Dict[str, Any]:
+    async def fetch(self, bbox: Union[RegionContext, Tuple[float, float, float, float]], resolution: float) -> Dict[str, Any]:
         """
         Fetch data from Overpass API.
         
         Args:
-            bbox: BoundingBox or tuple of (min_lat, min_lon, max_lat, max_lon).
+            bbox: RegionContext or tuple of (min_lat, min_lon, max_lat, max_lon).
             resolution: Requested resolution (not used for fetch, but for cache key).
             
         Returns:
             The JSON response from Overpass.
         """
         bbox_tuple: Tuple[float, float, float, float]
-        if isinstance(bbox, BoundingBox):
+        if isinstance(bbox, RegionContext):
             bbox_tuple = bbox.as_tuple()
         else:
             bbox_tuple = bbox

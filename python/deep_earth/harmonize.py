@@ -3,14 +3,14 @@ import rasterio
 import math
 from typing import Dict, Optional, Union, List, Any, Tuple
 from rasterio.warp import reproject, Resampling
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext
 
 class Harmonizer:
     """
     Orchestrates the resampling and alignment of multiple geospatial data streams.
     
     Attributes:
-        cm (CoordinateManager): Coordinate manager for the target region.
+        cm (RegionContext): Context manager for the target region.
         resolution (float): Master resolution in meters per pixel.
         width, height (int): Dimensions of the master grid.
         x_min, y_min, x_max, y_max (float): Bounding box in UTM.
@@ -19,7 +19,7 @@ class Harmonizer:
         layers (Dict[str, np.ndarray]): Dictionary of harmonized data layers.
     """
     
-    def __init__(self, coordinate_manager: CoordinateManager, resolution: float = 10.0):
+    def __init__(self, coordinate_manager: RegionContext, resolution: float = 10.0):
         """
         Initialize the Harmonizer.
 

@@ -6,7 +6,7 @@ import sys
 import logging
 from typing import Dict, Any, Optional
 
-from deep_earth.region import RegionContext
+from deep_earth.bbox import BoundingBox
 from deep_earth.config import Config
 from deep_earth.credentials import CredentialsManager
 from deep_earth.cache import CacheManager
@@ -17,7 +17,7 @@ from deep_earth.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-async def run_fetch_all(bbox: RegionContext, resolution: float, year: int) -> Dict[str, Optional[str]]:
+async def run_fetch_all(bbox: BoundingBox, resolution: float, year: int) -> Dict[str, Optional[str]]:
     """
     Fetch all data sources for the given bbox.
 
@@ -65,7 +65,7 @@ def main_logic(args: argparse.Namespace) -> None:
     # Parse bbox: "lat_min,lon_min,lat_max,lon_max"
     try:
         lat_min, lon_min, lat_max, lon_max = map(float, args.bbox.split(","))
-        bbox = RegionContext(lat_min, lat_max, lon_min, lon_max)
+        bbox = BoundingBox(lat_min, lat_max, lon_min, lon_max)
     except ValueError:
         print(f"Error: Invalid bbox format '{args.bbox}'. Expected 'lat_min,lon_min,lat_max,lon_max'")
         sys.exit(1)

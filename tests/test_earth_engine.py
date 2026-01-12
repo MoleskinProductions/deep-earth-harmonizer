@@ -2,7 +2,7 @@ import pytest
 import ee
 from unittest.mock import patch, MagicMock
 from deep_earth.providers.earth_engine import EarthEngineAdapter
-from deep_earth.coordinates import CoordinateManager
+from deep_earth.region import RegionContext as CoordinateManager
 
 @pytest.fixture
 def mock_credentials():
@@ -17,7 +17,8 @@ def mock_cache():
 
 @pytest.fixture
 def coordinate_manager():
-    return CoordinateManager(lat_min=44.9, lat_max=45.1, lon_min=-93.1, lon_max=-92.9)
+    # Small region (< 10km2) to trigger _fetch_direct
+    return CoordinateManager(lat_min=44.97, lat_max=44.98, lon_min=-93.27, lon_max=-93.26)
 
 def test_ee_adapter_init(mock_credentials, mock_cache):
     # Mock ee.ServiceAccountCredentials and ee.Initialize
@@ -25,6 +26,11 @@ def test_ee_adapter_init(mock_credentials, mock_cache):
         with patch("ee.Initialize") as mock_init:
             adapter = EarthEngineAdapter(mock_credentials, mock_cache)
             assert adapter.credentials == mock_credentials
+            # Should NOT be called on init (lazy loading)
+            assert not mock_sa.called
+            
+            # Trigger initialization
+            adapter._ensure_initialized()
             assert mock_sa.called
             assert mock_init.called
 
@@ -65,10 +71,9 @@ async def test_ee_fetch_logic_flow(mock_credentials, mock_cache, coordinate_mana
                     mock_image.clip.return_value = mock_image
                     mock_image.reproject.return_value = mock_image
                     
-                    # Mock the async export part which we'll implement
-                    with patch.object(adapter, "_export_and_poll", return_value="/tmp/exported.tif") as mock_export:
+                    # Mock the async fetch part (it's a small region in the test data)
+                    with patch.object(adapter, "_fetch_direct", return_value="/tmp/exported.tif") as mock_fetch:
                         result = await adapter.fetch(coordinate_manager, resolution=10, year=2023)
                         
                         assert result == "/tmp/exported.tif"
-                        assert mock_rect_cls.called
-                        assert mock_export.called
+                        assert mock_fetch.called
