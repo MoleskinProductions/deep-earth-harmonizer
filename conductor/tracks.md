@@ -39,7 +39,7 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 
 ---
 
-## [~] Track: Advanced Houdini & PDG
-> Goal: Deepen Houdini integration and support large-scale orchestration
+## [x] Track: Advanced Houdini & PDG
+> Completed 2026-01-11
 
 - [Link](conductor/tracks/phase6-advanced-houdini)
