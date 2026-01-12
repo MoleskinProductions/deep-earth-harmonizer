@@ -161,7 +161,7 @@ class EarthEngineAdapter(DataProviderAdapter):
     async def _poll_task(self, task: Any, timeout_secs: int = 600) -> Dict[str, Any]:
         """Polls an EE task until completion or timeout."""
         start_time = time.time()
-        wait_secs = 5
+        wait_secs: float = 5.0
         
         while True:
             status = task.status()

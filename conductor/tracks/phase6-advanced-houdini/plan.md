@@ -6,24 +6,24 @@ Deepen Houdini integration, support large-scale orchestration via PDG, and prepa
 ## Tasks
 
 ### 6.1 HDA UI & UX Polish
-- [ ] Fix menu handling in HDA Python module (use `parm.evalAsString()`)
-- [ ] Implement `hou.InterruptableOperation` for all fetching tasks
-- [ ] Add credential diagnostic panel to the HDA UI
+- [x] Fix menu handling in HDA Python module (use `parm.evalAsString()`) (c1399d0)
+- [x] Implement `hou.InterruptableOperation` for all fetching tasks (c1399d0)
+- [x] Add credential diagnostic panel to the HDA UI (c1399d0)
 
 ### 6.2 Attributes & Provenance
-- [ ] Add `s@source_year` attribute to all generated geometry
-- [ ] Add `s@provider_status_*` attributes for debugging source availability
-- [ ] Refactor `inject_heightfield` to write attributes lazily
+- [x] Add `s@source_year` attribute to all generated geometry (690c880)
+- [x] Add `s@provider_status_*` attributes for debugging source availability (690c880)
+- [x] Refactor `inject_heightfield` to write attributes lazily (690c880)
 
 ### 6.3 PDG Orchestration
-- [ ] Add `get_tiles()` helper to Region Context for TOP network fan-out
-- [ ] Implement a TOPs-ready script for per-tile fetching and harmonization
-- [ ] Create example TOP network for processing large regions (>100km2)
+- [x] Add `get_tiles()` helper to Region Context for TOP network fan-out (3c43d0d)
+- [x] Implement a TOPs-ready script for per-tile fetching and harmonization (3c43d0d)
+- [x] Create example TOP network for processing large regions (>100km2) (3c43d0d)
 
 ### 6.4 Distribution Packaging
-- [ ] Version the HDA (`otls/`) using standard Houdini versioning
-- [ ] Document final install steps for studio environments
-- [ ] Create a consolidated "Deep Earth Setup" wizard script
+- [x] Version the HDA (`otls/`) using standard Houdini versioning (b981a36)
+- [x] Document final install steps for studio environments (b981a36)
+- [x] Create a consolidated "Deep Earth Setup" wizard script (b981a36)
 
 ## Files to Modify
 | Action | File |
