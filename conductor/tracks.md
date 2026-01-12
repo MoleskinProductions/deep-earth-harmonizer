@@ -28,7 +28,7 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 ## [x] Track: Developer Experience
 > Completed 2026-01-11
 
-- [Link](conductor/tracks/phase4-polish)
+- [Link](conductor/archive/phase4-polish_20260111) (Archived)
 
 ---
 
