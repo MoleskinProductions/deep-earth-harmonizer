@@ -11,9 +11,9 @@ Address critical edge cases and stabilize core services for production-scale use
 - [x] Verify wheel build under Houdini's Python 3.11 (0047adc)
 
 ### 5.2 Houdini Point Instancing Fix
-- [ ] Update `python/deep_earth/houdini/geometry.py` to fix `createPoints` call
-- [ ] Use `createPoint` in a loop or `createPoints` with explicit positions
-- [ ] Add unit test with mock `hou` to verify correct point creation calls
+- [x] Update `python/deep_earth/houdini/geometry.py` to fix `createPoints` call (8cb2180)
+- [x] Use `createPoint` in a loop or `createPoints` with explicit positions (8cb2180)
+- [x] Add unit test with mock `hou` to verify correct point creation calls (8cb2180)
 
 ### 5.3 Earth Engine Scaling
 - [ ] Refactor `EarthEngineAdapter.fetch` to use `ee.batch.Export.image.toDrive` or Cloud Storage
