@@ -6,9 +6,9 @@ Address critical edge cases and stabilize core services for production-scale use
 ## Tasks
 
 ### 5.1 Project Manifest & Dependencies
-- [ ] Add `scipy` to `project.dependencies` in `pyproject.toml`
-- [ ] Add `earthengine-api` if not present (verify manifest)
-- [ ] Verify wheel build under Houdini's Python 3.11
+- [x] Add `scipy` to `project.dependencies` in `pyproject.toml` (0047adc)
+- [x] Add `earthengine-api` if not present (verify manifest) (0047adc)
+- [x] Verify wheel build under Houdini's Python 3.11 (0047adc)
 
 ### 5.2 Houdini Point Instancing Fix
 - [ ] Update `python/deep_earth/houdini/geometry.py` to fix `createPoints` call
