@@ -50,6 +50,9 @@ class SRTMAdapter(DataProviderAdapter):
         Returns:
             Absolute path to the cached GeoTIFF file.
         """
+        if not self.validate_credentials():
+            raise ValueError("OpenTopography API key missing. Elevation data unavailable.")
+
         logger.info(f"Fetching SRTM for bbox {bbox} at resolution {resolution}")
         cache_key = self.get_cache_key(bbox, resolution)
         

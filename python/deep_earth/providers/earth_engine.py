@@ -66,7 +66,8 @@ class EarthEngineAdapter(DataProviderAdapter):
             # Check for a known asset
             ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").limit(1).getInfo() # type: ignore
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Earth Engine credential validation failed: {e}")
             return False
 
     async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023) -> str:

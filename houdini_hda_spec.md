@@ -34,11 +34,14 @@ from deep_earth.providers.osm import OverpassAdapter
 async def fetch_all_data(srtm_adapter, gee_adapter, osm_adapter, cm, resolution, year):
     """Fetch all data sources concurrently."""
     import asyncio
-    return await asyncio.gather(
+    # Use return_exceptions=True so one failure doesn't block others
+    results = await asyncio.gather(
         srtm_adapter.fetch(cm, 30),
         gee_adapter.fetch(cm, resolution, year),
-        osm_adapter.fetch(cm, resolution)
+        osm_adapter.fetch(cm, resolution),
+        return_exceptions=True
     )
+    return results
 
 def run_fetch(node):
     lat_min, lat_max = node.parmTuple("lat_range").eval()

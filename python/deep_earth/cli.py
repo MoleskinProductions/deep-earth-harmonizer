@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, cast
 
 from deep_earth.region import RegionContext
 from deep_earth.config import Config
@@ -44,12 +44,22 @@ async def run_fetch_all(bbox: RegionContext, resolution: float, year: int) -> Di
     gee_task = gee_a.fetch(bbox, resolution, year)
     osm_task = osm_a.fetch(bbox, resolution)
     
-    srtm_path, gee_path, osm_data = await asyncio.gather(srtm_task, gee_task, osm_task)
+    tasks = [srtm_task, gee_task, osm_task]
+    names = ["srtm", "embeddings", "osm_data"]
     
-    results["srtm"] = srtm_path
-    results["embeddings"] = gee_path
-    # For OSM, we store the JSON path if it's cached
-    results["osm"] = cache.get_path(osm_a.get_cache_key(bbox, resolution), "osm", "json")
+    # Use return_exceptions=True to prevent one failure from aborting all
+    fetched_results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    for name, result in zip(names, fetched_results):
+        if isinstance(result, Exception):
+            logger.error(f"Failed to fetch {name}: {result}")
+            results[name] = None
+        else:
+            if name == "osm_data":
+                # Special case for OSM which returns a dict
+                results["osm"] = cache.get_path(osm_a.get_cache_key(bbox, resolution), "osm", "json")
+            else:
+                results[name] = cast(str, result)
     
     return results
 

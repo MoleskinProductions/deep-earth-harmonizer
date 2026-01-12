@@ -31,7 +31,7 @@ Address critical edge cases and stabilize core services for production-scale use
 - [x] Update all providers to use this canonical type (506b729)
 
 ### 5.6 Adapter Hardening
-- [ ] Defer Earth Engine initialization until first fetch
+- [~] Defer Earth Engine initialization until first fetch
 - [ ] Ensure missing credentials do not crash the Harmonizer cook
 - [ ] Add structured logging for fetch progress and failures
 
