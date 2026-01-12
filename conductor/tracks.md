@@ -35,7 +35,7 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 ## [x] Track: Production Hardening
 > Completed 2026-01-11
 
-- [Link](conductor/tracks/phase5-hardening)
+- [Link](conductor/archive/phase5-hardening_20260111) (Archived)
 
 ---
 
