@@ -1,4 +1,4 @@
-# Advanced Houdini & PDG - Plan
+# Advanced Houdini & PDG - Plan [checkpoint: c38706c]
 
 ## Goal
 Deepen Houdini integration, support large-scale orchestration via PDG, and prepare for distribution.
