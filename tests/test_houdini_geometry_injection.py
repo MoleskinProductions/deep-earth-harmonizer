@@ -219,3 +219,31 @@ def test_inject_heightfield_data_quality():
         dq_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "data_quality"]
         assert len(dq_calls) == 1
         assert dq_calls[0][0][1][0] == pytest.approx(0.75)
+
+def test_inject_heightfield_provenance():
+    mock_hou = MagicMock()
+    mock_hou.primitiveType.Volume = "Volume"
+    mock_hou.attribType.Point = "Point"
+    mock_hou.attribType.Global = "Global"
+    
+    with patch.dict("sys.modules", {"hou": mock_hou}):
+        geo = MagicMock()
+        height_volume = MagicMock()
+        height_volume.type.return_value = "Volume"
+        height_volume.name.return_value = "height"
+        geo.primitives.return_value = [height_volume]
+        
+        cm = CoordinateManager(45.0, 45.1, 10.0, 10.1)
+        h = Harmonizer(cm, resolution=100)
+        
+        height_grid = np.zeros((h.height, h.width))
+        embed_grid = np.zeros((64, h.height, h.width))
+        
+        inject_heightfield(geo, cm, h, height_grid, embed_grid, provenance={"year": 2024, "status_ee": "OK"})
+        
+        # Check if detail attributes were added
+        # geo.addAttrib(hou.attribType.Global, name, default_value)
+        global_attribs = [call[0][1] for call in geo.addAttrib.call_args_list if call[0][0] == mock_hou.attribType.Global]
+        assert "fetch_timestamp" in global_attribs
+        assert "source_year" in global_attribs
+        assert "status_ee" in global_attribs

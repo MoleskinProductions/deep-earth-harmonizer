@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
 from deep_earth.region import RegionContext
 from deep_earth.harmonize import Harmonizer
@@ -10,7 +10,8 @@ def inject_heightfield(
     harmonizer: Harmonizer, 
     height_grid: np.ndarray, 
     embed_grid: np.ndarray, 
-    viz_mode: Optional[str] = None
+    viz_mode: Optional[str] = None,
+    provenance: Optional[Dict[str, Any]] = None
 ) -> None:
     """
     Injects elevation and embedding data into a Houdini heightfield.
@@ -25,8 +26,10 @@ def inject_heightfield(
         height_grid: (H, W) elevation grid.
         embed_grid: (64, H, W) embedding grid.
         viz_mode: Optional visualization mode ('pca', 'biome').
+        provenance: Optional metadata dictionary (e.g., source_year).
     """
     import hou
+    from datetime import datetime, timezone
     
     # 1. Create/Resize Heightfield
     # Standard heightfield in Houdini is a volume with a 'height' layer
@@ -108,3 +111,15 @@ def inject_heightfield(
         
         if colors is not None:
             geo.setPointFloatAttribValues("Cd", colors.flatten().tolist())
+
+    # 7. Metadata & Provenance (Detail attributes)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    geo.addAttrib(hou.attribType.Global, "fetch_timestamp", timestamp)
+    
+    if provenance:
+        for key, value in provenance.items():
+            attr_name = f"source_{key}" if key == "year" else key
+            if isinstance(value, int):
+                geo.addAttrib(hou.attribType.Global, attr_name, value)
+            else:
+                geo.addAttrib(hou.attribType.Global, attr_name, str(value))
