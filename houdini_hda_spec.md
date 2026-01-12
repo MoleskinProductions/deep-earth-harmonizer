@@ -1,6 +1,38 @@
 # Deep Earth Harmonizer HDA Shell Specification (Houdini 21.0)
 
-The HDA is created manually in Houdini following this specification. It uses a split architecture: fetching logic in the HDA Python Module (Scripts tab) and geometry generation in an internal Python SOP.
+## Installation & Studio Deployment
+
+### 1. Requirements
+- Houdini 21.0+
+- Python 3.11 (Hython)
+- Python packages: `pyproj`, `shapely`, `rasterio`, `numpy`, `scikit-learn`, `earthengine-api`
+
+### 2. Environment Setup (Recommended)
+Create `~/houdini21.0/packages/deep_earth.json`:
+```json
+{
+    "hpath": "/path/to/planet_embeddings",
+    "env": [
+        {
+            "PYTHONPATH": [
+                "/path/to/planet_embeddings/python",
+                "/path/to/planet_embeddings/venv_houdini/lib/python3.11/site-packages"
+            ]
+        },
+        {
+            "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "your@email.com",
+            "DEEP_EARTH_GEE_KEY_PATH": "/path/to/key.json",
+            "DEEP_EARTH_OPENTOPO_KEY": "your_api_key"
+        }
+    ]
+}
+```
+
+### 3. Asset Versioning
+The HDA should be saved as `otls/mk::deep_earth::1.0.hdalc` (or `.hda`).
+Inside Houdini, the node type name must be `mk::deep_earth::1.0`.
+
+---
 
 ## Node Type: `deep_earth_harmonizer` (SOP)
 
