@@ -28,18 +28,22 @@ def test_inject_heightfield_sets_positions():
         
         inject_heightfield(geo, cm, h, height_grid, embed_grid)
         
-        # Check if setPointFloatAttribValues was called for 'P'
-        # We need to find the call where the first argument is "P"
-        p_calls = [call for call in geo.setPointFloatAttribValues.call_args_list if call[0][0] == "P"]
-        assert len(p_calls) == 1, "setPointFloatAttribValues('P', ...) was not called"
+        # Check if createPoints was called with the correct number of points
+        create_points_calls = geo.createPoints.call_args_list
+        assert len(create_points_calls) == 1
         
         # Verify positions
-        positions = p_calls[0][0][1]
-        assert len(positions) == h.width * h.height * 3
+        positions = create_points_calls[0][0][0]
+        assert len(positions) == h.width * h.height
+        assert len(positions[0]) == 3
         
         # Check first point position (top-left cell center)
         expected_x, expected_y = h.dst_transform * (0.5, 0.5)
         expected_z = height_grid[0, 0]
+        
+        assert positions[0][0] == pytest.approx(expected_x)
+        assert positions[0][1] == pytest.approx(expected_z) # In Houdini, Y is up, so height is Y
+        assert positions[0][2] == pytest.approx(expected_y) # Z in Houdini is Y in UTM (North)
         
 def test_inject_heightfield_injects_osm_attributes():
     # Mock the 'hou' module

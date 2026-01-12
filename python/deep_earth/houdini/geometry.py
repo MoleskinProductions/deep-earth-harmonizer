@@ -47,23 +47,36 @@ def inject_heightfield(
     # We flatten the numpy array and set all voxels
     height_volume.setAllVoxels(height_grid.flatten())
     
-    # 3. Inject Embeddings as Point Attributes
-    # Create point attribute array 'embedding' [64]
-    # We first convert the heightfield to points (standard Houdini practice for per-pixel attrs)
-    # However, we can also store them as extra volumes (layers)
-    
     # Option B: Point Attribute (as recommended in plan)
-    # We'll create a point per grid cell
+    # 3. Create Points at UTM grid locations
+    # We create a point per grid cell to store embeddings and other attributes
     geo.clearPoints()
-    points = geo.createPoints(harmonizer.width * harmonizer.height)
     
-    # Inject Embeddings
+    # Generate grid of column and row indices
+    cols, rows = np.meshgrid(np.arange(harmonizer.width), np.arange(harmonizer.height))
+    
+    # Calculate UTM coordinates (X=Easting, Y=Northing)
+    # We use (cols + 0.5, rows + 0.5) to get pixel centers
+    xs, ys = harmonizer.dst_transform * (cols + 0.5, rows + 0.5)
+    
+    # In Houdini:
+    # X = UTM Easting
+    # Y = Elevation (height_grid)
+    # Z = UTM Northing
+    positions = np.stack([xs, height_grid, ys], axis=-1).reshape(-1, 3)
+    
+    # Create points with explicit positions
+    # Note: positions.flatten().tolist() might be slow for very large grids, 
+    # but it's the standard way to pass from NumPy to hou
+    points = geo.createPoints(positions.tolist())
+    
+    # 4. Inject Embeddings as Point Attributes
     attr_name = "embedding"
     geo.addAttrib(hou.attribType.Point, attr_name, (0.0,) * 64)
     flattened_embeddings = embed_grid.transpose(1, 2, 0).reshape(-1, 64)
     geo.setPointFloatAttribValues(attr_name, flattened_embeddings.flatten().tolist())
     
-    # Inject Additional Layers from Harmonizer (OSM, etc.)
+    # 5. Inject Additional Layers from Harmonizer (OSM, etc.)
     for name, data in harmonizer.layers.items():
         flattened_data = data.flatten()
         if np.issubdtype(data.dtype, np.floating):
@@ -76,7 +89,7 @@ def inject_heightfield(
             geo.addAttrib(hou.attribType.Point, name, "")
             geo.setPointStringAttribValues(name, flattened_data.tolist())
     
-    # 3.5 Visualization Modes (Cd attribute)
+    # 6. Visualization Modes (Cd attribute)
     if viz_mode:
         geo.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
         colors = None
@@ -95,23 +108,3 @@ def inject_heightfield(
         
         if colors is not None:
             geo.setPointFloatAttribValues("Cd", colors.flatten().tolist())
-    
-    # 4. Set P (Position) for points to match UTM grid
-    # This aligns the point cloud with the heightfield
-    
-    # Generate grid of column and row indices
-    cols, rows = np.meshgrid(np.arange(harmonizer.width), np.arange(harmonizer.height))
-    
-    # Calculate UTM coordinates (X=Easting, Y=Northing)
-    # rasterio.transform * (cols, rows) returns (x, y)
-    # We use (cols + 0.5, rows + 0.5) to get pixel centers
-    xs, ys = harmonizer.dst_transform * (cols + 0.5, rows + 0.5)
-    
-    # In Houdini:
-    # X = UTM Easting
-    # Y = Elevation (height_grid)
-    # Z = UTM Northing
-    # Note: height_grid is usually (H, W)
-    positions = np.stack([xs, height_grid, ys], axis=-1).reshape(-1, 3)
-    
-    geo.setPointFloatAttribValues("P", positions.flatten().tolist())
