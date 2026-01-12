@@ -21,9 +21,9 @@ Address critical edge cases and stabilize core services for production-scale use
 - [x] Surface partial results via `f@data_quality` if some layers fail (506b729)
 
 ### 5.4 Cache Metadata Alignment
-- [ ] Update `CacheManager` to store ISO8601 timestamps and TTL per entry
-- [ ] Implement schema versioning in `cache_metadata.json`
-- [ ] Add migration path helper to clear stale entries
+- [x] Update `CacheManager` to store ISO8601 timestamps and TTL per entry (3dee249)
+- [x] Implement schema versioning in `cache_metadata.json` (3dee249)
+- [x] Add migration path helper to clear stale entries (3dee249)
 
 ### 5.5 Bounding Box Consolidation
 - [x] Merge `BoundingBox` and `CoordinateManager` responsibilities into a single canonical dataclass (506b729)
