@@ -16,9 +16,9 @@ Address critical edge cases and stabilize core services for production-scale use
 - [x] Add unit test with mock `hou` to verify correct point creation calls (8cb2180)
 
 ### 5.3 Earth Engine Scaling
-- [~] Refactor `EarthEngineAdapter.fetch` to use `ee.batch.Export.image.toDrive` or Cloud Storage
-- [ ] Implement polling logic with exponential backoff
-- [ ] Surface partial results via `f@data_quality` if some layers fail
+- [x] Refactor `EarthEngineAdapter.fetch` to use `ee.batch.Export.image.toDrive` or Cloud Storage (506b729)
+- [x] Implement polling logic with exponential backoff (506b729)
+- [x] Surface partial results via `f@data_quality` if some layers fail (506b729)
 
 ### 5.4 Cache Metadata Alignment
 - [ ] Update `CacheManager` to store ISO8601 timestamps and TTL per entry
@@ -26,9 +26,9 @@ Address critical edge cases and stabilize core services for production-scale use
 - [ ] Add migration path helper to clear stale entries
 
 ### 5.5 Bounding Box Consolidation
-- [ ] Merge `BoundingBox` and `CoordinateManager` responsibilities into a single canonical dataclass
-- [ ] Standardize attribute names used for cache keys
-- [ ] Update all providers to use this canonical type
+- [x] Merge `BoundingBox` and `CoordinateManager` responsibilities into a single canonical dataclass (506b729)
+- [x] Standardize attribute names used for cache keys (506b729)
+- [x] Update all providers to use this canonical type (506b729)
 
 ### 5.6 Adapter Hardening
 - [ ] Defer Earth Engine initialization until first fetch
