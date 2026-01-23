@@ -1,16 +1,22 @@
 {
-    "hpath": "/home/mk2/dev/planet_embeddings",
     "env": [
         {
-            "PYTHONPATH": [
-                "/home/mk2/dev/planet_embeddings/python",
-                "/home/mk2/dev/planet_embeddings/venv_houdini/lib/python3.11/site-packages"
-            ]
+            "DEEP_EARTH_ROOT": "/home/mk2/dev/planet_embeddings"
         },
         {
-            "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "deepearth@deepearth-482704.iam.gserviceaccount.com",
-            "DEEP_EARTH_GEE_KEY_PATH": "/home/mk2/dev/planet_embeddings/python/deep_earth/deepearth-482704-f3be1bebcfe5.json",
-            "DEEP_EARTH_OPENTOPO_KEY": "274957554d1f62d565bce95b9d6322b6"
+            "PYTHONPATH": {
+                "value": [
+                    "$DEEP_EARTH_ROOT/python",
+                    "$DEEP_EARTH_ROOT/venv_houdini/lib/python3.11/site-packages"
+                ],
+                "method": "prepend"
+            }
+        },
+        {
+            "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "$DEEP_EARTH_GEE_SERVICE_ACCOUNT",
+            "DEEP_EARTH_GEE_KEY_PATH": "$DEEP_EARTH_GEE_KEY_PATH",
+            "DEEP_EARTH_OPENTOPO_KEY": "$DEEP_EARTH_OPENTOPO_KEY"
         }
-    ]
+    ],
+    "hpath": "$DEEP_EARTH_ROOT"
 }

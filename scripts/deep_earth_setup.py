@@ -1,53 +1,33 @@
+#!/usr/bin/env python3
 """
-Deep Earth Harmonizer - Setup Wizard
-Helps configure credentials and environment for studio deployment.
+Deep Earth Harmonizer - Setup Wizard (Standalone Script)
+
+This script can be run directly without installing the package.
+For installed usage, use: deep-earth setup
 """
 
 import os
-import json
 import sys
-import logging
-from deep_earth.credentials import CredentialsManager
-from deep_earth.config import Config
 
-def setup_wizard():
-    print("=== Deep Earth Harmonizer Setup Wizard ===")
-    
-    config = Config()
-    creds = CredentialsManager()
-    
-    print(f"\n1. Cache Configuration")
-    print(f"Current Cache Path: {config.cache_path}")
-    
-    print(f"\n2. Credential Status")
-    status = creds.validate()
-    
-    print(f"  Earth Engine: {'VALID' if status['earth_engine'] else 'MISSING'}")
-    if not status['earth_engine']:
-        print("    Requires: DEEP_EARTH_GEE_SERVICE_ACCOUNT & DEEP_EARTH_GEE_KEY_PATH")
-        
-    print(f"  OpenTopography: {'VALID' if status['opentopography'] else 'MISSING'}")
-    if not status['opentopography']:
-        print("    Requires: DEEP_EARTH_OPENTOPO_KEY")
+# Add parent directory to path for standalone usage
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+python_path = os.path.join(project_root, "python")
+if python_path not in sys.path:
+    sys.path.insert(0, python_path)
 
-    print("\n3. Houdini Package Configuration")
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    package_json = {
-        "hpath": project_root,
-        "env": [
-            {
-                "PYTHONPATH": [
-                    os.path.join(project_root, "python"),
-                    os.path.join(project_root, "venv_houdini/lib/python3.11/site-packages")
-                ]
-            }
-        ]
-    }
-    
-    print("\nRecommended planet_embeddings.json for ~/houdini21.0/packages/:")
-    print(json.dumps(package_json, indent=4))
-    
-    print("\nSetup complete. Ensure your environment variables are set in your shell or the package JSON.")
+from deep_earth.setup_wizard import setup_wizard
 
 if __name__ == "__main__":
-    setup_wizard()
+    import argparse
+    parser = argparse.ArgumentParser(description="Deep Earth Harmonizer Setup Wizard")
+    parser.add_argument("--generate-template", action="store_true",
+                        help="Generate template files without prompts")
+    parser.add_argument("--output", "-o", type=str,
+                        help="Output path for generated files")
+    args = parser.parse_args()
+
+    setup_wizard(
+        generate_template=args.generate_template,
+        output_path=args.output
+    )

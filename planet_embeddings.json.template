@@ -1,0 +1,19 @@
+{
+    "env": [
+        {
+            "DEEP_EARTH_ROOT": "/path/to/planet_embeddings"
+        },
+        {
+            "PYTHONPATH": {
+                "value": ["$DEEP_EARTH_ROOT/python"],
+                "method": "prepend"
+            }
+        },
+        {
+            "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "your-service-account@your-project.iam.gserviceaccount.com",
+            "DEEP_EARTH_GEE_KEY_PATH": "/path/to/service-account-key.json",
+            "DEEP_EARTH_OPENTOPO_KEY": "your-opentopography-api-key"
+        }
+    ],
+    "hpath": "$DEEP_EARTH_ROOT"
+}

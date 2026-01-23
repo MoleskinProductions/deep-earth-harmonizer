@@ -11,26 +11,31 @@
 Create `~/houdini21.0/packages/deep_earth.json`:
 ```json
 {
-    "hpath": "/path/to/planet_embeddings",
     "env": [
         {
-            "PYTHONPATH": [
-                "/path/to/planet_embeddings/python",
-                "/path/to/planet_embeddings/venv_houdini/lib/python3.11/site-packages"
-            ]
+            "DEEP_EARTH_ROOT": "/path/to/planet_embeddings"
+        },
+        {
+            "PYTHONPATH": {
+                "value": ["$DEEP_EARTH_ROOT/python"],
+                "method": "prepend"
+            }
         },
         {
             "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "your@email.com",
             "DEEP_EARTH_GEE_KEY_PATH": "/path/to/key.json",
             "DEEP_EARTH_OPENTOPO_KEY": "your_api_key"
         }
-    ]
+    ],
+    "hpath": "$DEEP_EARTH_ROOT"
 }
 ```
 
+See `planet_embeddings.json.template` for a distributable template.
+
 ### 3. Asset Versioning
-The HDA should be saved as `otls/mk::deep_earth::1.0.hdalc` (or `.hda`).
-Inside Houdini, the node type name must be `mk::deep_earth::1.0`.
+The HDA is saved as `otls/sop_mk.pv.deep_earth.1.0.hdalc`.
+Inside Houdini, the node type name is `mk.pv::deep_earth::1.0`.
 
 ---
 
@@ -52,8 +57,15 @@ Inside Houdini, the node type name must be `mk::deep_earth::1.0`.
 ## HDA Python Module (`hou.phm()`)
 Used for the `fetch` button callback.
 
+The fetch button uses a callback script that accesses the node via `kwargs['node']`.
+This pattern is standard for HDA button callbacks.
+
 ```python
+# Button callback script (executed via exec())
+# Note: kwargs['node'] provides the HDA node reference
+
 import hou
+import asyncio
 from deep_earth.async_utils import run_async
 from deep_earth.credentials import CredentialsManager
 from deep_earth.cache import CacheManager
@@ -63,47 +75,47 @@ from deep_earth.providers.srtm import SRTMAdapter
 from deep_earth.providers.earth_engine import EarthEngineAdapter
 from deep_earth.providers.osm import OverpassAdapter
 
-async def fetch_all_data(srtm_adapter, gee_adapter, osm_adapter, region, resolution, year):
-    """Fetch all data sources concurrently."""
-    import asyncio
-    # Use return_exceptions=True so one failure doesn't block others
-    results = await asyncio.gather(
-        srtm_adapter.fetch(region, 30),
-        gee_adapter.fetch(region, resolution, year),
-        osm_adapter.fetch(region, resolution),
+node = kwargs['node']  # HDA node reference from button callback
+lat_min, lat_max = node.parmTuple("lat_range").eval()
+lon_min, lon_max = node.parmTuple("lon_range").eval()
+resolution = node.parm("resolution").eval()
+year = node.parm("year").eval()
+
+region = RegionContext(lat_min, lat_max, lon_min, lon_max)
+config = Config()
+creds = CredentialsManager()
+cache = CacheManager(config.cache_path)
+
+srtm_a = SRTMAdapter(creds, cache)
+gee_a = EarthEngineAdapter(creds, cache)
+osm_a = OverpassAdapter(cache_dir=config.cache_path)
+
+async def fetch_all():
+    return await asyncio.gather(
+        srtm_a.fetch(region, 30),
+        gee_a.fetch(region, resolution, year),
+        osm_a.fetch(region, resolution),
         return_exceptions=True
     )
-    return results
 
-def run_fetch(node):
-    lat_min, lat_max = node.parmTuple("lat_range").eval()
-    lon_min, lon_max = node.parmTuple("lon_range").eval()
-    resolution = node.parm("resolution").eval()
-    year = node.parm("year").eval()
-    
-    region = RegionContext(lat_min, lat_max, lon_min, lon_max)
-    config = Config()
-    creds = CredentialsManager()
-    cache = CacheManager(config.cache_path)
-    
-    srtm_a = SRTMAdapter(creds, cache)
-    gee_a = EarthEngineAdapter(creds, cache)
-    osm_a = OverpassAdapter(cache_dir=config.cache_path)
-    
-    with hou.InterruptableOperation("Fetching Earth Data", open_interrupt_dialog=True) as op:
-        run_async(fetch_all_data(srtm_a, gee_a, osm_a, region, resolution, year))
-    
-    # Force cook the internal python SOP to update geometry
-    node.node("python_injection").cook(force=True)
+with hou.InterruptableOperation("Fetching Earth Data", open_interrupt_dialog=True):
+    run_async(fetch_all())
+
+# Force cook the internal Python SOP to update geometry
+node.node("python1").cook(force=True)
 ```
 
 ---
 
-## Internal Python SOP (`python_injection`)
+## Internal Python SOP (`python1`)
 This node lives inside the HDA subnet and performs the harmonization and geometry injection.
+The node is named `python1` (Houdini's default naming for Python SOPs).
 
 ```python
 import hou
+import asyncio
+import numpy as np
+import logging
 from deep_earth.async_utils import run_async
 from deep_earth.region import RegionContext
 from deep_earth.harmonize import Harmonizer
@@ -114,6 +126,9 @@ from deep_earth.providers.osm import OverpassAdapter
 from deep_earth.credentials import CredentialsManager
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
+
+logger = logging.getLogger("deep_earth.hda")
+
 
 node = hou.pwd()
 hda = node.parent()

@@ -85,16 +85,47 @@ def main_logic(args: argparse.Namespace) -> None:
     # Output JSON summary
     print(json.dumps(results, indent=2))
 
+def run_setup_wizard(args: argparse.Namespace) -> None:
+    """Run the setup wizard for configuring Deep Earth."""
+    from deep_earth.setup_wizard import setup_wizard
+    setup_wizard(
+        generate_template=getattr(args, 'generate_template', False),
+        output_path=getattr(args, 'output', None)
+    )
+
 def main() -> None:
     """Entry point for the CLI."""
-    parser = argparse.ArgumentParser(description="Deep Earth Harmonizer CLI")
-    parser.add_argument("--bbox", type=str, required=True, help="lat_min,lon_min,lat_max,lon_max")
-    parser.add_argument("--resolution", type=float, default=10.0, help="Resolution in meters (default: 10.0)")
-    parser.add_argument("--year", type=int, default=2023, help="Embedding year (default: 2023)")
-    parser.add_argument("--output-dir", type=str, help="Optional output directory (currently uses cache)")
-    
+    parser = argparse.ArgumentParser(
+        description="Deep Earth Harmonizer - Multi-modal geospatial data synthesizer for Houdini"
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Fetch command (default behavior)
+    fetch_parser = subparsers.add_parser("fetch", help="Fetch geospatial data for a region")
+    fetch_parser.add_argument("--bbox", type=str, required=True, help="lat_min,lon_min,lat_max,lon_max")
+    fetch_parser.add_argument("--resolution", type=float, default=10.0, help="Resolution in meters (default: 10.0)")
+    fetch_parser.add_argument("--year", type=int, default=2023, help="Embedding year (default: 2023)")
+    fetch_parser.add_argument("--output-dir", type=str, help="Optional output directory (currently uses cache)")
+
+    # Setup command
+    setup_parser = subparsers.add_parser("setup", help="Run the setup wizard")
+    setup_parser.add_argument("--generate-template", action="store_true", help="Generate template files without prompts")
+    setup_parser.add_argument("--output", "-o", type=str, help="Output path for generated files")
+
+    # Support legacy direct --bbox usage
+    parser.add_argument("--bbox", type=str, help="lat_min,lon_min,lat_max,lon_max (legacy, use 'fetch' subcommand)")
+    parser.add_argument("--resolution", type=float, default=10.0, help=argparse.SUPPRESS)
+    parser.add_argument("--year", type=int, default=2023, help=argparse.SUPPRESS)
+    parser.add_argument("--output-dir", type=str, help=argparse.SUPPRESS)
+
     args = parser.parse_args()
-    main_logic(args)
+
+    if args.command == "setup":
+        run_setup_wizard(args)
+    elif args.command == "fetch" or args.bbox:
+        main_logic(args)
+    else:
+        parser.print_help()
 
 if __name__ == "__main__":
     main()
