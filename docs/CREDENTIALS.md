@@ -37,7 +37,7 @@ Include credentials in your Houdini package file (`~/houdini21.0/packages/deep_e
 {
     "env": [
         {
-            "DEEP_EARTH_ROOT": "/path/to/planet_embeddings"
+            "DEEP_EARTH_ROOT": "/path/to/deep-earth-harmonizer"
         },
         {
             "PYTHONPATH": {

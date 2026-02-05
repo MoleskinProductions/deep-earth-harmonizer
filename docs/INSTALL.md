@@ -8,12 +8,24 @@
 
 ## Step 1: Install the Python Package
 
-Clone and install in development mode:
+### From source (development mode)
 
 ```bash
 git clone https://github.com/deep-earth/deep-earth-harmonizer.git
 cd deep-earth-harmonizer
 pip install -e .
+```
+
+### From wheel
+
+```bash
+pip install deep_earth-0.2.0-py3-none-any.whl
+```
+
+### Optional: preview support
+
+```bash
+pip install "deep_earth[preview]"
 ```
 
 Verify the installation:
@@ -72,22 +84,27 @@ Create `~/houdini21.0/packages/deep_earth.json`:
 {
     "env": [
         {
-            "DEEP_EARTH_ROOT": "/path/to/planet_embeddings"
+            "DEEP_EARTH_ROOT": "/path/to/deep-earth-harmonizer"
         },
         {
             "PYTHONPATH": {
                 "value": ["$DEEP_EARTH_ROOT/python"],
                 "method": "prepend"
             }
+        },
+        {
+            "DEEP_EARTH_GEE_SERVICE_ACCOUNT": "your-account@project.iam.gserviceaccount.com",
+            "DEEP_EARTH_GEE_KEY_PATH": "/path/to/service-account-key.json",
+            "DEEP_EARTH_OPENTOPO_KEY": "your-api-key"
         }
     ],
     "hpath": "$DEEP_EARTH_ROOT"
 }
 ```
 
-Replace `/path/to/planet_embeddings` with your actual installation path.
+Replace `/path/to/deep-earth-harmonizer` with your actual installation path.
 
-You can also include credentials in the package JSON (see `planet_embeddings.json.template`).
+A distributable template is provided at `planet_embeddings.json.template`.
 
 ## Step 5: Verify Installation
 
@@ -97,7 +114,7 @@ You can also include credentials in the package JSON (see `planet_embeddings.jso
 deep-earth fetch --bbox 44.97,-93.27,44.98,-93.26 --resolution 10
 ```
 
-Expected output: JSON with paths to cached data files.
+Expected output: JSON with `results` (provider paths) and optional `errors`.
 
 ### Houdini Verification
 

@@ -1,7 +1,7 @@
 {
     "env": [
         {
-            "DEEP_EARTH_ROOT": "/path/to/planet_embeddings"
+            "DEEP_EARTH_ROOT": "/path/to/deep-earth-harmonizer"
         },
         {
             "PYTHONPATH": {

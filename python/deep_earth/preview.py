@@ -1,20 +1,34 @@
+import os
 import numpy as np
-import matplotlib.pyplot as plt
 import logging
 from typing import Any, Optional, Union, Dict
+
+# Use non-interactive backend when no display is available or when
+# saving to file, so preview works in CI / headless servers.
+import matplotlib
+if os.environ.get("DISPLAY") is None and os.environ.get("WAYLAND_DISPLAY") is None:
+    matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
 
 logger = logging.getLogger(__name__)
 
-def generate_preview(data: Union[np.ndarray, Dict[str, np.ndarray]], mode: str = "elevation", title: Optional[str] = None) -> None:
-    """
-    Generates a standalone visualization of the data using matplotlib.
-    
+def generate_preview(
+    data: Union[np.ndarray, Dict[str, np.ndarray]],
+    mode: str = "elevation",
+    title: Optional[str] = None,
+    output_path: Optional[str] = None,
+) -> None:
+    """Generates a standalone visualization of the data using matplotlib.
+
     Args:
-        data: NumPy array of the data to visualize, or dict of layers for 'osm' mode.
+        data: NumPy array of the data to visualize, or dict of layers
+            for 'osm' mode.
         mode: Visualization mode ('elevation', 'pca', 'biome', 'osm').
         title: Optional title for the plot.
+        output_path: If provided, save the figure to this path instead
+            of displaying interactively.
 
     Raises:
         ValueError: If the mode is unknown or data shape is incorrect.
@@ -67,7 +81,13 @@ def generate_preview(data: Union[np.ndarray, Dict[str, np.ndarray]], mode: str =
     if title:
         plt.title(title)
     plt.axis("off")
-    plt.show()
+
+    if output_path:
+        plt.savefig(output_path, bbox_inches="tight", dpi=150)
+        plt.close()
+        logger.info(f"Preview saved to {output_path}")
+    else:
+        plt.show()
 
 if __name__ == "__main__":
     # Example usage for testing

@@ -105,6 +105,39 @@ def main_logic(args: argparse.Namespace) -> None:
     # Output JSON summary
     print(json.dumps(output, indent=2))
 
+    # Optional preview
+    preview_path = getattr(args, "preview", None)
+    if preview_path is not None:
+        _run_preview(output, preview_path)
+
+def _run_preview(output: Dict[str, Any], preview_path: str) -> None:
+    """Generate an elevation preview from fetched SRTM data.
+
+    Args:
+        output: The structured output from ``run_fetch_all``.
+        preview_path: File path to save the preview image.
+    """
+    srtm_path = output.get("results", {}).get("srtm")
+    if not srtm_path:
+        logger.warning("No SRTM data available for preview")
+        return
+
+    try:
+        import rasterio
+        from deep_earth.preview import generate_preview
+
+        with rasterio.open(srtm_path) as src:
+            dem = src.read(1)
+        generate_preview(
+            dem, mode="elevation",
+            title="Deep Earth — Elevation Preview",
+            output_path=preview_path,
+        )
+        print(f"Preview saved to {preview_path}")
+    except Exception as exc:
+        logger.error(f"Preview generation failed: {exc}")
+
+
 def run_setup_wizard(args: argparse.Namespace) -> None:
     """Run the setup wizard for configuring Deep Earth."""
     from deep_earth.setup_wizard import setup_wizard
@@ -126,6 +159,7 @@ def main() -> None:
     fetch_parser.add_argument("--resolution", type=float, default=10.0, help="Resolution in meters (default: 10.0)")
     fetch_parser.add_argument("--year", type=int, default=2023, help="Embedding year (default: 2023)")
     fetch_parser.add_argument("--output-dir", type=str, help="Optional output directory (currently uses cache)")
+    fetch_parser.add_argument("--preview", type=str, metavar="FILE", help="Save an elevation preview image to FILE (e.g. preview.png)")
 
     # Setup command
     setup_parser = subparsers.add_parser("setup", help="Run the setup wizard")

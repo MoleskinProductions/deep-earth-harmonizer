@@ -18,18 +18,22 @@ deep-earth fetch --bbox 44.97,-93.27,44.98,-93.26 --resolution 10
 - `--bbox` - Bounding box as `lat_min,lon_min,lat_max,lon_max`
 - `--resolution` - Target resolution in meters (default: 10)
 - `--year` - Satellite embedding year (default: 2023)
+- `--preview FILE` - Save an elevation preview image (requires `matplotlib`)
 
 **Expected output:**
 
 ```json
 {
-  "srtm": "/home/user/.deep_earth_cache/srtm_44.97_-93.27_44.98_-93.26.tif",
-  "embeddings": "/home/user/.deep_earth_cache/ee_embed_44.97_-93.27_2023.tif",
-  "osm": "/home/user/.deep_earth_cache/osm_44.97_-93.27_44.98_-93.26.json"
+  "results": {
+    "srtm": "/home/user/.deep_earth_cache/srtm/srtm_44.97_44.98_-93.27_-93.26_30.tif",
+    "embeddings": "/home/user/.deep_earth_cache/embeddings/gee_44.97_44.98_-93.27_-93.26_10_2023.tif",
+    "osm": "/home/user/.deep_earth_cache/osm/osm_44.97_-93.27_44.98_-93.26.json"
+  }
 }
 ```
 
-The paths point to cached data files that can be used by Houdini or other tools.
+If a provider fails, an `errors` key is included with per-provider messages.
+The `results` paths point to cached data files used by Houdini or other tools.
 
 ## Houdini HDA Workflow
 

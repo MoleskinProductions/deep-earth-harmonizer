@@ -1,3 +1,4 @@
+import os
 import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
@@ -59,4 +60,15 @@ def test_preview_invalid_mode():
     """Test that invalid modes raise an error."""
     with pytest.raises(ValueError):
         generate_preview(np.zeros((10, 10)), mode="invalid")
+
+
+def test_preview_save_to_file(tmp_path):
+    """Test headless preview saved to file via output_path."""
+    out = str(tmp_path / "preview.png")
+    dem = np.random.rand(10, 10).astype(np.float32) * 500
+
+    generate_preview(dem, mode="elevation", output_path=out)
+
+    assert os.path.exists(out)
+    assert os.path.getsize(out) > 0
 
