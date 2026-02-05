@@ -43,3 +43,24 @@ Current status and active development tracks for Deep Earth Harmonizer v2.
 > Completed 2026-01-11
 
 - [Link](conductor/tracks/phase6-advanced-houdini)
+
+---
+
+## [ ] Track: Repair & Stabilize
+> Goal: Green test suite, working dev environment, no broken imports
+
+- [Link](conductor/tracks/phase7-production)
+
+---
+
+## [ ] Track: Robustness & Fail-Graceful Hardening
+> Goal: All provider failures handled gracefully; offline-testable suite
+
+- [Link](conductor/tracks/phase7-production)
+
+---
+
+## [ ] Track: HDA Verification, Packaging & Release
+> Goal: Ship a distributable package and verified HDA
+
+- [Link](conductor/tracks/phase7-production)

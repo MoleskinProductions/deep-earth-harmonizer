@@ -2,7 +2,7 @@ import asyncio
 import numpy as np
 from deep_earth.logging_config import setup_logging
 from deep_earth.providers.osm import OverpassAdapter
-from deep_earth.bbox import BoundingBox
+from deep_earth.region import RegionContext as BoundingBox
 from deep_earth.preview import generate_preview
 
 async def test_osm():

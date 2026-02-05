@@ -786,22 +786,24 @@ On first use, present a guided setup:
 - [x] Heightfield/point cloud generation
 - [x] Multi-modal attribute injection pipeline
 
-### Phase 4: Developer Experience (PENDING)
-- [ ] CLI runner (`python -m deep_earth`)
-- [ ] Standalone visualization/preview tool
-- [ ] Type hints and Google-style docstrings
+### Phase 4: Developer Experience (COMPLETED)
+- [x] CLI runner (`python -m deep_earth`)
+- [x] Standalone visualization/preview tool
+- [x] Type hints and Google-style docstrings
 
-### Phase 5: Production Hardening (PENDING)
-- [ ] Fix Houdini point instancing bugs
-- [ ] Scale Earth Engine exports (Batch/Cloud Storage)
-- [ ] Advanced cache metadata (TTL, versioning)
-- [ ] RegionContext consolidation
+### Phase 5: Production Hardening (COMPLETED)
+- [x] Scale Earth Engine exports (Batch/Cloud Storage)
+- [x] Advanced cache metadata (TTL, versioning)
+- [x] RegionContext consolidation
+- [ ] Fix Houdini point instancing bugs *(deferred to Phase 9.1)*
 
-### Phase 6: Advanced Houdini & PDG (PENDING)
-- [ ] TOP network for tile-based processing
-- [ ] Large region handling (>100km2)
-- [ ] HDA UI/UX polish and diagnostics
-- [ ] Versioned distribution packaging
+### Phase 6: Advanced Houdini & PDG (COMPLETED)
+- [x] TOP network for tile-based processing
+- [x] Large region handling (>100km2)
+- [x] HDA UI/UX polish and diagnostics
+- [x] Versioned distribution packaging
+
+> **Note:** Remaining work is tracked in `conductor/tracks/phase7-production/plan.md` (Phases 7–9).
 
 ---
 
