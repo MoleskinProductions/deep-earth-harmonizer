@@ -1,7 +1,0 @@
-pyproject.toml
-deep_earth.egg-info/PKG-INFO
-deep_earth.egg-info/SOURCES.txt
-deep_earth.egg-info/dependency_links.txt
-deep_earth.egg-info/requires.txt
-deep_earth.egg-info/top_level.txt
-tests/test_package.py

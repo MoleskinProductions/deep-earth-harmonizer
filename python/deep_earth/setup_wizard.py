@@ -7,13 +7,13 @@ import os
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from deep_earth.credentials import CredentialsManager
 from deep_earth.config import Config
 
 
-def get_houdini_packages_dir() -> Optional[Path]:
+def get_houdini_packages_dir() -> Path:
     """Find the Houdini packages directory."""
     # Check common locations
     home = Path.home()
@@ -65,7 +65,7 @@ def generate_credentials_template() -> dict:
 
 def validate_credential_paths() -> dict:
     """Check if credential files exist."""
-    results = {
+    results: Dict[str, Any] = {
         "gee_key_exists": False,
         "gee_key_path": None,
     }

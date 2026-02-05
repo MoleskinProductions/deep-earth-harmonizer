@@ -15,6 +15,18 @@ def test_invalid_bbox():
     with pytest.raises(ValueError, match="must be less than"):
         RegionContext(lat_min=45, lat_max=44, lon_min=-93, lon_max=-92)
 
+def test_invalid_lon_min_gt_max():
+    """lon_min >= lon_max raises ValueError."""
+    with pytest.raises(ValueError, match="lon_min"):
+        RegionContext(lat_min=44, lat_max=45, lon_min=-92, lon_max=-93)
+
+
+def test_as_tuple():
+    """as_tuple returns (lat_min, lon_min, lat_max, lon_max)."""
+    r = RegionContext(44.97, 44.98, -93.27, -93.26)
+    assert r.as_tuple() == (44.97, -93.27, 44.98, -93.26)
+
+
 def test_utm_zone_detection():
     # Minneapolis (~45N, -93W) should be UTM 15N
     cm = RegionContext(lat_min=44.9, lat_max=45.1, lon_min=-93.1, lon_max=-92.9)

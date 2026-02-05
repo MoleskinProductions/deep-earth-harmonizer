@@ -56,6 +56,13 @@ Repository = "https://github.com/deep-earth/deep-earth-harmonizer"
 [tool.setuptools.packages.find]
 where = ["python"]
 
+[tool.mypy]
+mypy_path = "python"
+packages = ["deep_earth"]
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+
 [tool.pytest.ini_options]
 pythonpath = ["python"]
 asyncio_mode = "auto"

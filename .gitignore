@@ -2,9 +2,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+venv_houdini/
 .coverage
 htmlcov/
-deep_earth.egg-info/
+*.egg-info/
+dist/
+build/
 
 # Credentials - NEVER commit these
 credentials.json
