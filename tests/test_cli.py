@@ -1,3 +1,4 @@
+import os
 import pytest
 import json
 import subprocess
@@ -137,3 +138,81 @@ def test_cli_fatal_error_outputs_json(capsys):
     captured = capsys.readouterr()
     output = json.loads(captured.out)
     assert "cache dir missing" in output["error"]
+
+
+def test_cli_run_preview_success(tmp_path, capsys):
+    """_run_preview generates a preview image from SRTM data."""
+    import numpy as np
+    import rasterio
+
+    # Create a synthetic DEM
+    dem_path = str(tmp_path / "srtm.tif")
+    data = np.random.rand(10, 10).astype(np.float32) * 100
+    with rasterio.open(
+        dem_path, "w", driver="GTiff",
+        height=10, width=10, count=1, dtype="float32",
+    ) as dst:
+        dst.write(data, 1)
+
+    preview_out = str(tmp_path / "preview.png")
+    output = {"results": {"srtm": dem_path}}
+
+    from deep_earth.cli import _run_preview
+    _run_preview(output, preview_out)
+
+    captured = capsys.readouterr()
+    assert f"Preview saved to {preview_out}" in captured.out
+    assert os.path.exists(preview_out)
+
+
+def test_cli_run_preview_no_srtm(capsys):
+    """_run_preview with no SRTM data logs warning, does not crash."""
+    from deep_earth.cli import _run_preview
+    _run_preview({"results": {}}, "/tmp/nope.png")
+    # Should not crash; warning is logged but not printed to stdout
+
+
+def test_cli_run_preview_error(capsys):
+    """_run_preview catches exceptions from generate_preview."""
+    from deep_earth.cli import _run_preview
+    with patch("rasterio.open", side_effect=Exception("corrupt file")):
+        _run_preview(
+            {"results": {"srtm": "/nonexistent.tif"}},
+            "/tmp/out.png",
+        )
+    # Should not crash — error is logged
+
+
+def test_cli_run_setup_wizard():
+    """run_setup_wizard delegates to setup_wizard function."""
+    from deep_earth.cli import run_setup_wizard
+
+    args = MagicMock()
+    args.generate_template = True
+    args.output = "/tmp/out"
+
+    with patch("deep_earth.setup_wizard.setup_wizard") as mock_sw:
+        run_setup_wizard(args)
+    mock_sw.assert_called_once_with(
+        generate_template=True, output_path="/tmp/out",
+    )
+
+
+def test_cli_main_setup_command():
+    """'setup' subcommand dispatches to run_setup_wizard."""
+    with patch("deep_earth.cli.run_setup_wizard") as mock_rsw:
+        from deep_earth.cli import main
+        with patch.object(
+            sys, "argv", ["deep_earth", "setup"],
+        ):
+            main()
+        mock_rsw.assert_called_once()
+
+
+def test_cli_main_no_command(capsys):
+    """No subcommand and no --bbox -> prints help."""
+    from deep_earth.cli import main
+    with patch.object(sys, "argv", ["deep_earth"]):
+        main()
+    out = capsys.readouterr().out
+    assert "usage:" in out.lower() or "Deep Earth" in out
