@@ -1,9 +1,33 @@
+import logging
 import numpy as np
 import rasterio
 import math
+from dataclasses import dataclass, field
 from typing import Dict, Optional, Union, List, Any, Tuple
 from rasterio.warp import reproject, Resampling
 from deep_earth.region import RegionContext
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FetchResult:
+    """Structured result from a provider fetch, distinguishing success,
+    missing data, and errors for fail-graceful pipelines.
+
+    Attributes:
+        provider: Name of the data provider (e.g., "srtm", "gee", "osm").
+        path: Path to the cached file on success, None otherwise.
+        error: Error message if the fetch failed, None on success.
+    """
+    provider: str
+    path: Optional[str] = None
+    error: Optional[str] = None
+
+    @property
+    def ok(self) -> bool:
+        """True when fetch succeeded and path is available."""
+        return self.path is not None and self.error is None
 
 class Harmonizer:
     """
@@ -90,6 +114,45 @@ class Harmonizer:
             if data.shape != (self.height, self.width):
                 raise ValueError(f"Layer dimensions {data.shape} do not match master grid {(self.height, self.width)}")
             self.layers[name] = data
+
+    def process_fetch_result(
+        self,
+        result: Any,
+        provider_name: str,
+        bands: Union[int, List[int]] = 1,
+    ) -> Tuple[Optional[np.ndarray], FetchResult]:
+        """Safely resample a provider result into a grid.
+
+        Handles ``None`` paths, ``Exception`` objects (from
+        ``asyncio.gather(return_exceptions=True)``), and file-read
+        errors without raising.
+
+        Args:
+            result: The raw return from a provider fetch — a file path
+                (str), ``None``, or an ``Exception``.
+            provider_name: Human-readable provider name for logging.
+            bands: Band(s) to resample.
+
+        Returns:
+            A tuple of (grid_or_None, FetchResult).
+        """
+        if isinstance(result, Exception):
+            msg = f"{provider_name} fetch raised: {result}"
+            logger.error(msg)
+            return None, FetchResult(provider_name, error=msg)
+
+        if result is None:
+            msg = f"{provider_name} returned no data"
+            logger.warning(msg)
+            return None, FetchResult(provider_name, error=msg)
+
+        try:
+            grid = self.resample(result, bands=bands)
+            return grid, FetchResult(provider_name, path=result)
+        except Exception as e:
+            msg = f"{provider_name} resample failed: {e}"
+            logger.error(msg)
+            return None, FetchResult(provider_name, error=msg)
 
     def compute_quality_layer(self, height_grid: Optional[np.ndarray] = None, embed_grid: Optional[np.ndarray] = None) -> np.ndarray:
         """

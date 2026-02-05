@@ -33,35 +33,107 @@ def test_cli_parse_bbox():
 @pytest.mark.asyncio
 async def test_cli_execution_summary(tmp_path):
     """Test that the CLI outputs a valid JSON summary."""
-    # This might be better as an integration test or using mocks
-    # For now, let's mock the adapters to avoid network calls
-    
     mock_srtm = MagicMock()
     mock_srtm.fetch = AsyncMock(return_value=str(tmp_path / "srtm.tif"))
-    
+
     mock_gee = MagicMock()
     mock_gee.fetch = AsyncMock(return_value=str(tmp_path / "gee.tif"))
-    
+
     mock_osm = MagicMock()
     mock_osm.fetch = AsyncMock(return_value={"elements": []})
     mock_osm.get_cache_key.return_value = "osm_key"
-    
+
     with patch("deep_earth.cli.SRTMAdapter", return_value=mock_srtm), \
          patch("deep_earth.cli.EarthEngineAdapter", return_value=mock_gee), \
          patch("deep_earth.cli.OverpassAdapter", return_value=mock_osm), \
          patch("deep_earth.cli.CredentialsManager"), \
          patch("deep_earth.cli.CacheManager") as MockCache:
-        
+
         mock_cache_instance = MockCache.return_value
         mock_cache_instance.get_path.return_value = str(tmp_path / "osm.json")
-        
+
         from deep_earth.cli import run_fetch_all
         from deep_earth.region import RegionContext as BoundingBox
-        
+
         bbox = BoundingBox(45.0, 45.1, -93.0, -92.9)
-        results = await run_fetch_all(bbox, resolution=10, year=2023)
-        
+        output = await run_fetch_all(bbox, resolution=10, year=2023)
+
+        results = output["results"]
         assert "srtm" in results
         assert "embeddings" in results
         assert "osm" in results
         assert results["srtm"].endswith("srtm.tif")
+        assert "errors" not in output
+
+
+@pytest.mark.asyncio
+async def test_cli_partial_failure_includes_errors():
+    """When a provider raises, output includes errors dict."""
+    mock_srtm = MagicMock()
+    mock_srtm.fetch = AsyncMock(
+        side_effect=ValueError("API key missing"),
+    )
+
+    mock_gee = MagicMock()
+    mock_gee.fetch = AsyncMock(return_value=None)
+
+    mock_osm = MagicMock()
+    mock_osm.fetch = AsyncMock(return_value={"elements": []})
+    mock_osm.get_cache_key.return_value = "osm_key"
+
+    with patch("deep_earth.cli.SRTMAdapter", return_value=mock_srtm), \
+         patch("deep_earth.cli.EarthEngineAdapter", return_value=mock_gee), \
+         patch("deep_earth.cli.OverpassAdapter", return_value=mock_osm), \
+         patch("deep_earth.cli.CredentialsManager"), \
+         patch("deep_earth.cli.CacheManager") as MockCache:
+
+        mock_cache_instance = MockCache.return_value
+        mock_cache_instance.get_path.return_value = "/tmp/osm.json"
+
+        from deep_earth.cli import run_fetch_all
+        from deep_earth.region import RegionContext
+
+        bbox = RegionContext(45.0, 45.1, -93.0, -92.9)
+        output = await run_fetch_all(bbox, resolution=10, year=2023)
+
+        assert output["results"]["srtm"] is None
+        assert output["results"]["embeddings"] is None
+        assert "errors" in output
+        assert "API key missing" in output["errors"]["srtm"]
+        assert "embeddings" in output["errors"]
+
+
+def test_cli_invalid_bbox_exits_cleanly(capsys):
+    """Invalid bbox prints error message and exits with code 1."""
+    from deep_earth.cli import main_logic
+
+    args = MagicMock()
+    args.bbox = "not,a,valid"
+
+    with pytest.raises(SystemExit) as exc_info:
+        main_logic(args)
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "Error: Invalid bbox format" in captured.out
+
+
+def test_cli_fatal_error_outputs_json(capsys):
+    """Unexpected error in run_fetch_all prints JSON error and exits."""
+    from deep_earth.cli import main_logic
+
+    args = MagicMock()
+    args.bbox = "45.0,-93.0,45.1,-92.9"
+    args.resolution = 10.0
+    args.year = 2023
+
+    with patch("deep_earth.cli.setup_logging"), \
+         patch("deep_earth.cli.asyncio.run",
+               side_effect=RuntimeError("cache dir missing")):
+        with pytest.raises(SystemExit) as exc_info:
+            main_logic(args)
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    output = json.loads(captured.out)
+    assert "cache dir missing" in output["error"]

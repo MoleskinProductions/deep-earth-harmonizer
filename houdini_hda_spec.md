@@ -167,18 +167,16 @@ srtm_path, gee_path, osm_json = run_async(asyncio.gather(
     return_exceptions=True
 ))
 
-# 4. Harmonize (with error guards)
-if not isinstance(srtm_path, Exception) and srtm_path:
-    height_grid = harmonizer.resample(srtm_path, bands=1)
-else:
+# 4. Harmonize (with structured result handling)
+height_grid, srtm_result = harmonizer.process_fetch_result(srtm_path, "srtm", bands=1)
+if height_grid is None:
     height_grid = np.zeros((harmonizer.height, harmonizer.width), dtype=np.float32)
-    logger.error(f"SRTM failed: {srtm_path}")
 
-if not isinstance(gee_path, Exception) and gee_path:
-    embed_grid = harmonizer.resample(gee_path, bands=list(range(1, 65)))
-else:
+embed_grid, gee_result = harmonizer.process_fetch_result(
+    gee_path, "gee", bands=list(range(1, 65))
+)
+if embed_grid is None:
     embed_grid = np.zeros((64, harmonizer.height, harmonizer.width), dtype=np.float32)
-    logger.error(f"GEE failed: {gee_path}")
 
 if not isinstance(osm_json, Exception) and osm_json:
     osm_layers = osm_a.transform_to_grid(osm_json['elements'], harmonizer)
@@ -186,8 +184,8 @@ if not isinstance(osm_json, Exception) and osm_json:
 
 # 5. Data Quality
 quality = harmonizer.compute_quality_layer(
-    height_grid if not isinstance(srtm_path, Exception) else None, 
-    embed_grid if not isinstance(gee_path, Exception) else None
+    height_grid if srtm_result.ok else None,
+    embed_grid if gee_result.ok else None
 )
 harmonizer.add_layers({"data_quality": quality})
 

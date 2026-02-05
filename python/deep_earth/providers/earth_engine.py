@@ -22,8 +22,12 @@ class EarthEngineAdapter(DataProviderAdapter):
     """
     Adapter for Google Earth Engine (GEE) to fetch 64D satellite embeddings.
     Supports scaling to large regions via batch exports to Google Cloud Storage.
+
+    Follows fail-graceful design: initialization and fetch errors are logged
+    and surfaced as ``None`` return values rather than exceptions, so that
+    DEM/OSM-only pipelines can continue when GEE is unavailable.
     """
-    
+
     def __init__(self, credentials: CredentialsManager, cache: CacheManager):
         """
         Initialize the Earth Engine adapter.
@@ -35,25 +39,37 @@ class EarthEngineAdapter(DataProviderAdapter):
         self.credentials = credentials
         self.cache = cache
         self._initialized = False
+        self._init_error: Optional[str] = None
 
-    def _ensure_initialized(self) -> None:
-        """Lazily initialize Earth Engine only when needed."""
+    def _ensure_initialized(self) -> bool:
+        """Lazily initialize Earth Engine only when needed.
+
+        Returns:
+            True if initialization succeeded, False otherwise.
+        """
         if self._initialized:
-            return
+            return True
+
+        if self._init_error is not None:
+            return False
 
         service_account = self.credentials.get_ee_service_account()
         key_file = self.credentials.get_ee_key_file()
-        
+
         if service_account and key_file:
             try:
                 ee_creds = ee.ServiceAccountCredentials(service_account, key_file) # type: ignore
                 ee.Initialize(ee_creds)
                 self._initialized = True
+                return True
             except Exception as e:
+                self._init_error = str(e)
                 logger.error(f"Failed to initialize Earth Engine: {e}")
-                raise RuntimeError(f"Earth Engine initialization failed: {e}")
+                return False
         else:
-            raise ValueError("Earth Engine credentials missing")
+            self._init_error = "Earth Engine credentials missing"
+            logger.warning(self._init_error)
+            return False
 
     def get_cache_key(self, bbox: RegionContext, resolution: float, year: int = 2023) -> str:
         """Generates a unique cache key for GEE embeddings."""
@@ -62,7 +78,8 @@ class EarthEngineAdapter(DataProviderAdapter):
     def validate_credentials(self) -> bool:
         """Validates GEE access."""
         try:
-            self._ensure_initialized()
+            if not self._ensure_initialized():
+                return False
             # Check for a known asset
             ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").limit(1).getInfo() # type: ignore
             return True
@@ -70,46 +87,61 @@ class EarthEngineAdapter(DataProviderAdapter):
             logger.warning(f"Earth Engine credential validation failed: {e}")
             return False
 
-    async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023) -> str:
+    async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023) -> Optional[str]:
         """
         Fetches GEE embeddings and returns the path to the cached GeoTIFF.
-        Automatically chooses between direct download and batch export based on region size.
+
+        Returns None (instead of raising) when initialization fails or
+        data cannot be retrieved, allowing the pipeline to continue with
+        degraded data quality.
         """
-        self._ensure_initialized()
+        if not self._ensure_initialized():
+            logger.warning(
+                f"Skipping GEE fetch — initialization failed: "
+                f"{self._init_error}"
+            )
+            return None
+
         logger.info(f"Fetching EarthEngine embeddings for bbox {bbox} at resolution {resolution}, year {year}")
         cache_key = self.get_cache_key(bbox, resolution, year)
-        
+
         if self.cache.exists(cache_key, category="embeddings"):
             logger.debug(f"Cache hit for {cache_key}")
             path = self.cache.get_path(cache_key, category="embeddings")
-            if path: return path
+            if path:
+                return path
 
         logger.debug(f"Cache miss for {cache_key}")
-        # Define geometry
-        region = ee.Geometry.Rectangle([bbox.lon_min, bbox.lat_min, bbox.lon_max, bbox.lat_max]) # type: ignore
-        
-        # Load embedding collection and filter by year
-        start_date = f"{year}-01-01"
-        end_date = f"{year}-12-31"
-        collection = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterDate(start_date, end_date) # type: ignore
-        
-        if collection.size().getInfo() == 0:
-            raise ValueError(f"No embeddings found for year {year}")
-            
-        image = collection.mosaic().clip(region)
-        
-        # Reproject to UTM
-        dst_crs = f"EPSG:{bbox.utm_epsg}"
-        image = image.reproject(crs=dst_crs, scale=resolution)
-        
-        # Check area size to decide export method
-        area_km2 = bbox.area_km2()
-        if area_km2 < 10.0: # Threshold for direct download: 10km2
-            return await self._fetch_direct(image, region, cache_key)
-        else:
-            return await self._fetch_batch(image, region, cache_key)
+        try:
+            # Define geometry
+            region = ee.Geometry.Rectangle([bbox.lon_min, bbox.lat_min, bbox.lon_max, bbox.lat_max]) # type: ignore
 
-    async def _fetch_direct(self, image: Any, region: Any, cache_key: str) -> str:
+            # Load embedding collection and filter by year
+            start_date = f"{year}-01-01"
+            end_date = f"{year}-12-31"
+            collection = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterDate(start_date, end_date) # type: ignore
+
+            if collection.size().getInfo() == 0:
+                logger.warning(f"No embeddings found for year {year}")
+                return None
+
+            image = collection.mosaic().clip(region)
+
+            # Reproject to UTM
+            dst_crs = f"EPSG:{bbox.utm_epsg}"
+            image = image.reproject(crs=dst_crs, scale=resolution)
+
+            # Check area size to decide export method
+            area_km2 = bbox.area_km2()
+            if area_km2 < 10.0:
+                return await self._fetch_direct(image, region, cache_key)
+            else:
+                return await self._fetch_batch(image, region, cache_key)
+        except Exception as e:
+            logger.error(f"GEE fetch failed: {e}")
+            return None
+
+    async def _fetch_direct(self, image: Any, region: Any, cache_key: str) -> Optional[str]:
         """Small region: use getDownloadURL for immediate results."""
         try:
             url = image.getDownloadURL({
@@ -117,7 +149,7 @@ class EarthEngineAdapter(DataProviderAdapter):
                 'crs': image.projection().crs().getInfo(),
                 'format': 'GeoTIFF'
             })
-            
+
             logger.info(f"Downloading GEE direct export from {url}")
             async with aiohttp.ClientSession() as session:
                 data = await fetch_with_retry(session, url)
@@ -127,36 +159,45 @@ class EarthEngineAdapter(DataProviderAdapter):
                 logger.warning("Direct download failed due to size. Falling back to batch export.")
                 return await self._fetch_batch(image, region, cache_key)
             logger.error(f"GEE Direct Export failed: {e}")
-            raise
+            return None
 
-    async def _fetch_batch(self, image: Any, region: Any, cache_key: str) -> str:
+    async def _fetch_batch(self, image: Any, region: Any, cache_key: str) -> Optional[str]:
         """Large region: use Export to GCS and poll for completion."""
         bucket = self.credentials.get_gcs_bucket()
         if not bucket:
-            # If no bucket, we can try Export.toDrive, but we won't be able to download it easily
-            raise ValueError("Large region detected but no GCS bucket configured for batch export.")
+            logger.warning(
+                "Large region detected but no GCS bucket configured "
+                "for batch export. Skipping GEE embeddings."
+            )
+            return None
 
         file_name = f"{cache_key}_{int(time.time())}"
-        task = ee.batch.Export.image.toCloudStorage(
-            image=image,
-            description=f"DeepEarth_{cache_key}",
-            bucket=bucket,
-            fileNamePrefix=file_name,
-            scale=image.projection().nominalScale().getInfo(),
-            crs=image.projection().crs().getInfo(),
-            format='GeoTIFF'
-        )
-        
-        task.start()
-        logger.info(f"Started GEE batch export task {task.id} to gs://{bucket}/{file_name}.tif")
-        
-        # Poll for completion
-        status = await self._poll_task(task)
-        if status['state'] != 'COMPLETED':
-            raise RuntimeError(f"GEE Export task failed: {status.get('error_message', 'Unknown error')}")
+        try:
+            task = ee.batch.Export.image.toCloudStorage(
+                image=image,
+                description=f"DeepEarth_{cache_key}",
+                bucket=bucket,
+                fileNamePrefix=file_name,
+                scale=image.projection().nominalScale().getInfo(),
+                crs=image.projection().crs().getInfo(),
+                format='GeoTIFF'
+            )
 
-        # Download from GCS
-        return await self._download_from_gcs(bucket, f"{file_name}.tif", cache_key)
+            task.start()
+            logger.info(f"Started GEE batch export task {task.id} to gs://{bucket}/{file_name}.tif")
+
+            # Poll for completion
+            status = await self._poll_task(task)
+            if status['state'] != 'COMPLETED':
+                error_msg = status.get('error_message', 'Unknown error')
+                logger.error(f"GEE Export task failed: {error_msg}")
+                return None
+
+            # Download from GCS
+            return await self._download_from_gcs(bucket, f"{file_name}.tif", cache_key)
+        except Exception as e:
+            logger.error(f"GEE batch export failed: {e}")
+            return None
 
     async def _poll_task(self, task: Any, timeout_secs: int = 600) -> Dict[str, Any]:
         """Polls an EE task until completion or timeout."""

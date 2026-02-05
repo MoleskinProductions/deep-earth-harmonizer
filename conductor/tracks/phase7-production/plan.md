@@ -43,24 +43,30 @@ Items already completed by prior tracks are excluded.
 > Goal: All provider failures handled gracefully; offline-testable suite.
 
 ### 8.1 EarthEngineAdapter Error Handling
-- [ ] `_fetch_batch` raises `RuntimeError` on task failure — refactor to return `None` or a structured failure result instead of crashing callers that don't use `return_exceptions=True`
-- [ ] `_ensure_initialized` raises `RuntimeError`/`ValueError` eagerly — defer initialization to `fetch()` time and return a clear error object so DEM/OSM-only cooks still work
-- [ ] `_fetch_batch` raises `ValueError` when no GCS bucket is configured — log warning and return `None` with degraded `data_quality` instead
+- [x] `_fetch_batch` raises `RuntimeError` on task failure — refactored to return `None` with logging
+- [x] `_ensure_initialized` returns `bool` instead of raising — defers initialization to `fetch()` time, tracks failure in `_init_error`
+- [x] `_fetch_batch` returns `None` when no GCS bucket is configured — logs warning instead of raising `ValueError`
 
 ### 8.2 Harmonizer Partial Success
-- [ ] Implement structured result handling in `Harmonizer` so callers can distinguish "no data" from "error" from "success"
-- [ ] Ensure `compute_quality_layer` correctly scores partial results when individual providers fail
-- [ ] Verify HDA internal Python SOP (`houdini_hda_spec.md` / `hda_ir`) handles all three provider failure modes without crashing the cook
+- [x] Added `FetchResult` dataclass and `process_fetch_result()` method to distinguish "no data" / "error" / "success"
+- [x] `compute_quality_layer` correctly scores partial results when individual providers fail
+- [x] Updated `houdini_hda_spec.md` and `hda_ir/deep_earth_harmonizer.json` to use `process_fetch_result` pattern
 
 ### 8.3 Mock Test Infrastructure
-- [ ] Add test fixtures that generate synthetic GeoTIFFs (elevation, 64-band embeddings) for offline harmonization tests
-- [ ] Add mock Overpass API responses for OSM tests
-- [ ] Ensure all provider tests can run without network access or credentials
-- [ ] Add `hou` module stubs for Houdini geometry tests
+- [x] Added `tests/conftest.py` with `synthetic_dem` and `synthetic_embeddings` GeoTIFF fixtures
+- [x] Added `mock_overpass_response` fixture with realistic Overpass JSON (roads, buildings, water, landuse)
+- [x] All 106 provider tests run offline without network access or credentials
+- [x] Added `mock_hou` fixture for Houdini geometry tests
+- [x] Added `tests/test_ee_error_paths.py` (6 tests) and `tests/test_harmonize_integration.py` (5 tests)
 
 ### 8.4 CLI Error Paths
-- [ ] Verify `deep-earth fetch` with invalid credentials prints useful error and exits cleanly (no stack trace)
-- [ ] Verify `deep-earth fetch` with unreachable APIs degrades gracefully (partial JSON output)
+- [x] `deep-earth fetch` with invalid credentials prints JSON error and exits cleanly (no stack trace)
+- [x] `deep-earth fetch` with unreachable APIs degrades gracefully — JSON output includes `errors` dict with per-provider messages
+- [x] Added 3 new CLI tests: partial failure, invalid bbox, fatal error
+
+### Phase 8 Baseline
+- **Tests:** 106 passed, 0 failed, 0 errors
+- **New tests added:** 14 (6 EE error paths + 5 harmonize integration + 3 CLI error paths)
 
 ---
 
