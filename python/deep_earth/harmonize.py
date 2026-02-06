@@ -93,6 +93,7 @@ class Harmonizer:
                 band_indices = bands
                 band_count = len(bands)
 
+            dst_shape: tuple[int, ...]
             if band_count == 1:
                 dst_shape = (self.height, self.width)
             else:

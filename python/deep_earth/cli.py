@@ -19,6 +19,14 @@ from deep_earth.region import RegionContext
 
 logger = logging.getLogger(__name__)
 
+
+class CLIError(Exception):
+    """Raised when the CLI encounters an error that should exit."""
+
+    def __init__(self, message: str, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
 async def run_fetch_all(
     bbox: RegionContext, 
     resolution: float, 
@@ -94,52 +102,13 @@ async def run_fetch_all(
                  errors[out_name] = "provider returned no data"
         else:
             if name == "osm_data":
-                # For OSM, we need to reconstruct the cache key to retrieve it
-                # Logic slightly duplicated here, but OSM adapter returns path usually?
-                # Wait, OSM adapter fetch returns Dict or None in original code (check osm.py? No it returns Path usually)
-                # In original cli.py: 
-                # results["osm"] = cache.get_path(osm_a.get_cache_key(bbox, resolution), "osm", "json")
-                # But osm_a.fetch() returns the result of cache.save() which is path.
-                # Let's trust the result is the path.
-                # Actually, check previous cli.py logic:
-                # "elif result is None ... else: if name == 'osm_data': results['osm'] = cache.get_path..."
-                # This implies osm_a.fetch might not return the path directly or logic was weird.
-                # Let's stick to using the result as path if it is a string.
-                # However, OverpassAdapter.fetch returns the data dict, NOT path?
-                # Let's check osm.py later or assume the previous cli code knew what it was doing.
-                # Previous code:
-                # if name == "osm_data":
-                #    results["osm"] = cache.get_path(osm_a.get_cache_key(bbox, resolution), "osm", "json")
-                # This suggests fetching returns the data object, not path.
-                
-                # To be safe, I will reproduce the logic but using the adapter instance if possible.
-                # Since I don't want to break OSM, I will assume the previous logic was correct about cache retrieval.
-                # I need access to cache object.
-                # If adapters were injected, I might not have 'cache' variable.
-                # But `osm_a` should have a cache_dir.
-                # Let's simplify: if result is valid, just try to get the path.
-                
-                # Actually, `OverpassAdapter` in `cli.py` was initialized with `cache_dir`.
-                # Re-reading `cli.py` before my edit:
-                # `osm_a = OverpassAdapter(cache_dir=config.cache_path)`
-                # `osm_task = osm_a.fetch(bbox, resolution)`
-                # The result is used in `zip`.
-                # Then: `results["osm"] = cache.get_path(...)`
-                # So `osm_task` return value was largely ignored? Or used to check success?
-                # `fetched_results` contains the return value.
-                # If `osm_a.fetch` returns the data, we shouldn't use `cast(str, result)`.
-                
-                # I will preserve the cache lookup logic for OSM.
-                # I need to ensure `cache` is available.
-                
-                # Note: `OverpassAdapter` works differently.
-                # I'll re-instantiate CacheManager if needed or grab it from adapter if public.
-                # For now, let's just make a new CacheManager for the key lookup if we are inside the 'adapter is None' block, 
-                # OR just assume we can make one.
-                
-                cache_kp = CacheManager(Config().cache_path) # Safe enough
-                results["osm"] = cache_kp.get_path(osm_a.get_cache_key(bbox, resolution), "osm", "json")
-
+                # OSM fetch returns data dict, not path; look up
+                # cached path via the adapter's cache key.
+                cache_kp = CacheManager(Config().cache_path)
+                results["osm"] = cache_kp.get_path(
+                    osm_a.get_cache_key(bbox, resolution),
+                    "osm", "json",
+                )
             else:
                 results[name] = cast(str, result)
 
@@ -148,36 +117,49 @@ async def run_fetch_all(
         output["errors"] = errors
     return output
 
-def main_logic(args: argparse.Namespace) -> None:
+def main_logic(args: argparse.Namespace) -> Dict[str, Any]:
     """Main execution logic for the CLI.
 
     Args:
         args: Parsed command line arguments.
+
+    Returns:
+        Structured output from ``run_fetch_all``.
+
+    Raises:
+        CLIError: On invalid input or fatal fetch errors.
     """
     setup_logging()
 
     # Parse bbox: "lat_min,lon_min,lat_max,lon_max"
     try:
-        lat_min, lon_min, lat_max, lon_max = map(float, args.bbox.split(","))
+        lat_min, lon_min, lat_max, lon_max = map(
+            float, args.bbox.split(","),
+        )
         bbox = RegionContext(lat_min, lat_max, lon_min, lon_max)
     except ValueError:
-        print(
-            f"Error: Invalid bbox format '{args.bbox}'. "
-            "Expected 'lat_min,lon_min,lat_max,lon_max'",
+        raise CLIError(
+            f"Invalid bbox format '{args.bbox}'. "
+            "Expected 'lat_min,lon_min,lat_max,lon_max'"
         )
-        sys.exit(1)
 
     try:
-        dataset_id = getattr(args, "dataset_id", "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
-        local_dir = getattr(args, "local_dir", None)
-        
-        output = asyncio.run(
-            run_fetch_all(bbox, args.resolution, args.year, dataset_id, local_dir),
+        dataset_id = getattr(
+            args, "dataset_id",
+            "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL",
         )
+        local_dir = getattr(args, "local_dir", None)
+
+        output = asyncio.run(
+            run_fetch_all(
+                bbox, args.resolution, args.year,
+                dataset_id, local_dir,
+            ),
+        )
+    except CLIError:
+        raise
     except Exception as exc:
-        logger.error(f"Fatal error: {exc}")
-        print(json.dumps({"error": str(exc)}))
-        sys.exit(1)
+        raise CLIError(str(exc)) from exc
 
     # Output JSON summary
     print(json.dumps(output, indent=2))
@@ -186,6 +168,8 @@ def main_logic(args: argparse.Namespace) -> None:
     preview_path = getattr(args, "preview", None)
     if preview_path is not None:
         _run_preview(output, preview_path)
+
+    return output
 
 def _run_preview(output: Dict[str, Any], preview_path: str) -> None:
     """Generate an elevation preview from fetched SRTM data.
@@ -258,7 +242,11 @@ def main() -> None:
     if args.command == "setup":
         run_setup_wizard(args)
     elif args.command == "fetch" or args.bbox:
-        main_logic(args)
+        try:
+            main_logic(args)
+        except CLIError as exc:
+            print(json.dumps({"error": str(exc)}))
+            sys.exit(exc.exit_code)
     else:
         parser.print_help()
 

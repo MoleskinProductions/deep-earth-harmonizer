@@ -187,4 +187,4 @@ class LocalFileAdapter(DataProviderAdapter):
         Since fetch() already harmonizes it, we just read it.
         """
         with rasterio.open(data_path) as src:
-            return src.read()
+            return np.asarray(src.read())

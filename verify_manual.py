@@ -1,9 +1,10 @@
 import asyncio
+
 import numpy as np
+
 from deep_earth.logging_config import setup_logging
 from deep_earth.providers.osm import OverpassAdapter
 from deep_earth.region import RegionContext as BoundingBox
-from deep_earth.preview import generate_preview
 
 async def test_all():
     setup_logging()
@@ -47,8 +48,4 @@ async def test_all():
             print(f"FAILURE: Local file not processed. Errors: {output.get('errors')}")
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "preview":
-        test_preview()
-    else:
-        asyncio.run(test_all())
+    asyncio.run(test_all())

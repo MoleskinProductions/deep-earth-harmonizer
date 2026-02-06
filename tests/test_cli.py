@@ -104,24 +104,20 @@ async def test_cli_partial_failure_includes_errors():
         assert "embeddings" in output["errors"]
 
 
-def test_cli_invalid_bbox_exits_cleanly(capsys):
-    """Invalid bbox prints error message and exits with code 1."""
-    from deep_earth.cli import main_logic
+def test_cli_invalid_bbox_raises_cli_error():
+    """Invalid bbox raises CLIError with descriptive message."""
+    from deep_earth.cli import CLIError, main_logic
 
     args = MagicMock()
     args.bbox = "not,a,valid"
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(CLIError, match="Invalid bbox format"):
         main_logic(args)
 
-    assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert "Error: Invalid bbox format" in captured.out
 
-
-def test_cli_fatal_error_outputs_json(capsys):
-    """Unexpected error in run_fetch_all prints JSON error and exits."""
-    from deep_earth.cli import main_logic
+def test_cli_fatal_error_raises_cli_error():
+    """Unexpected error in run_fetch_all raises CLIError."""
+    from deep_earth.cli import CLIError, main_logic
 
     args = MagicMock()
     args.bbox = "45.0,-93.0,45.1,-92.9"
@@ -131,13 +127,23 @@ def test_cli_fatal_error_outputs_json(capsys):
     with patch("deep_earth.cli.setup_logging"), \
          patch("deep_earth.cli.asyncio.run",
                side_effect=RuntimeError("cache dir missing")):
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(CLIError, match="cache dir missing"):
             main_logic(args)
 
+
+def test_cli_main_catches_cli_error_and_exits(capsys):
+    """main() translates CLIError into JSON output + sys.exit."""
+    from deep_earth.cli import main
+    with patch.object(
+        sys, "argv",
+        ["deep_earth", "fetch", "--bbox", "not,a,valid"],
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
     output = json.loads(captured.out)
-    assert "cache dir missing" in output["error"]
+    assert "Invalid bbox format" in output["error"]
 
 
 def test_cli_run_preview_success(tmp_path, capsys):
@@ -216,3 +222,65 @@ def test_cli_main_no_command(capsys):
         main()
     out = capsys.readouterr().out
     assert "usage:" in out.lower() or "Deep Earth" in out
+
+
+def test_main_module_entry_point():
+    """python -m deep_earth delegates to cli.main."""
+    with patch("deep_earth.cli.main") as mock_main:
+        import importlib
+        import deep_earth.__main__ as mod
+        importlib.reload(mod)
+    # __main__.py runs main() only under __name__ == "__main__",
+    # so just verify the module imports cleanly.
+    assert hasattr(mod, "main")
+
+
+@pytest.mark.asyncio
+async def test_run_fetch_all_with_local_dir(tmp_path):
+    """run_fetch_all includes local adapter when local_dir is given."""
+    mock_srtm = MagicMock()
+    mock_srtm.fetch = AsyncMock(return_value=str(tmp_path / "s.tif"))
+
+    mock_gee = MagicMock()
+    mock_gee.fetch = AsyncMock(return_value=str(tmp_path / "g.tif"))
+
+    mock_osm = MagicMock()
+    mock_osm.fetch = AsyncMock(return_value={"elements": []})
+    mock_osm.get_cache_key.return_value = "osm_key"
+
+    mock_local = MagicMock()
+    mock_local.fetch = AsyncMock(
+        return_value=str(tmp_path / "local.tif"),
+    )
+
+    adapters = {
+        "srtm": mock_srtm,
+        "gee": mock_gee,
+        "osm": mock_osm,
+        "local": mock_local,
+    }
+
+    with patch("deep_earth.cli.CacheManager") as MockCache:
+        MockCache.return_value.get_path.return_value = str(
+            tmp_path / "osm.json",
+        )
+        from deep_earth.cli import run_fetch_all
+        from deep_earth.region import RegionContext
+
+        bbox = RegionContext(45.0, 45.1, -93.0, -92.9)
+        output = await run_fetch_all(
+            bbox, 10, 2023, local_dir="/some/dir",
+            adapters=adapters,
+        )
+
+    assert output["results"]["local"].endswith("local.tif")
+    mock_local.fetch.assert_called_once()
+
+
+def test_cli_error_has_exit_code():
+    """CLIError stores an exit code (defaults to 1)."""
+    from deep_earth.cli import CLIError
+    err = CLIError("boom")
+    assert err.exit_code == 1
+    err2 = CLIError("boom", exit_code=2)
+    assert err2.exit_code == 2

@@ -7,7 +7,7 @@ This document tracks "last minute" necessary edits, code cleanup, and housekeepi
 
 ### 1.1. CLI (`python/deep_earth/cli.py`)
 - [x] **Refactor `run_fetch_all`**: Accepts `adapters` dict for dependency injection.
-- [ ] **Error Handling**: `sys.exit(1)` in `main_logic` is abrupt. Ensure cleaner exception propagation for library use.
+- [x] **Error Handling**: `main_logic` raises `CLIError`; `main()` catches and translates to `sys.exit`. Clean for library use.
 
 ### 1.2. Earth Engine Adapter (`python/deep_earth/providers/earth_engine.py`)
 - [x] **DRY Logic**: `@require_ee` decorator handles initialization checks.
@@ -31,7 +31,7 @@ This document tracks "last minute" necessary edits, code cleanup, and housekeepi
 
 ## 3. Testing
 - [x] **New Tests**: Added unit tests for `LocalFileAdapter` (`tests/test_local.py`, 8 tests).
-- [ ] **Integration**: manual test script `verify_manual.py` needs to include the new local ingestion step.
+- [x] **Integration**: `verify_manual.py` already includes local ingestion step. Fixed dead `test_preview()` reference.
 
 ## 4. HDA Housekeeping
 - [ ] **Version Bump**: Update HDA version to `1.1` in `hda_ir` and filename.
