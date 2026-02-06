@@ -31,14 +31,31 @@ class EarthEngineAdapter(DataProviderAdapter):
     @staticmethod
     def require_ee(func):
         """Decorator to ensure Earth Engine is initialized before calling a method."""
-        def wrapper(self, *args, **kwargs):
-            if not self._ensure_initialized():
-                logger.warning(
-                    f"Skipping {func.__name__} — initialization failed: "
-                    f"{self._init_error}"
-                )
-                return None if func.__name__ == 'fetch' else False
-            return func(self, *args, **kwargs)
+        import asyncio as _asyncio
+        import functools
+
+        if _asyncio.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def wrapper(self, *args, **kwargs):
+                if not self._ensure_initialized():
+                    logger.warning(
+                        f"Skipping {func.__name__} — "
+                        f"initialization failed: "
+                        f"{self._init_error}"
+                    )
+                    return None
+                return await func(self, *args, **kwargs)
+        else:
+            @functools.wraps(func)
+            def wrapper(self, *args, **kwargs):
+                if not self._ensure_initialized():
+                    logger.warning(
+                        f"Skipping {func.__name__} — "
+                        f"initialization failed: "
+                        f"{self._init_error}"
+                    )
+                    return None if func.__name__ == 'fetch' else False
+                return func(self, *args, **kwargs)
         return wrapper
 
     def __init__(self, credentials: CredentialsManager, cache: CacheManager):
@@ -106,7 +123,7 @@ class EarthEngineAdapter(DataProviderAdapter):
         safe_asset = asset_id.replace("/", "_").replace(":", "_")
         return f"gee_{safe_asset}_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}_{year}"
 
-    @EarthEngineAdapter.require_ee
+    @require_ee
     def validate_credentials(self) -> bool:
         """Validates GEE access."""
         try:
@@ -117,7 +134,7 @@ class EarthEngineAdapter(DataProviderAdapter):
             logger.warning(f"Earth Engine credential validation failed: {e}")
             return False
 
-    @EarthEngineAdapter.require_ee
+    @require_ee
     async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023, asset_id: str = "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL") -> Optional[str]:
         """
         Fetches GEE data and returns the path to the cached GeoTIFF.

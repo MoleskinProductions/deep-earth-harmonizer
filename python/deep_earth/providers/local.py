@@ -2,6 +2,7 @@ import os
 import glob
 import logging
 import rasterio
+import rasterio.warp
 import numpy as np
 import shutil
 from typing import Any, Union, Dict, Optional, List
@@ -10,7 +11,6 @@ from pathlib import Path
 from deep_earth.region import RegionContext
 from deep_earth.cache import CacheManager
 from .base import DataProviderAdapter
-from deep_earth.harmonize import Harmonizer
 
 logger = logging.getLogger(__name__)
 
@@ -150,19 +150,30 @@ class LocalFileAdapter(DataProviderAdapter):
 
             # 3. Save to cache
             if self.cache:
-                with self.cache.open_write(cache_key, category="local", ext="tif") as dst_path:
-                    with rasterio.open(
-                        dst_path, 'w',
-                        driver='GTiff',
-                        height=height, width=width,
-                        count=count, dtype=dtype,
-                        crs=dst_crs,
-                        transform=dst_transform
-                    ) as dst:
-                        dst.write(dest_array)
-                    return dst_path
+                dst_path = self.cache._get_full_path(
+                    cache_key, "local", "tif",
+                )
+                with rasterio.open(
+                    dst_path, 'w',
+                    driver='GTiff',
+                    height=height, width=width,
+                    count=count, dtype=dtype,
+                    crs=dst_crs,
+                    transform=dst_transform,
+                ) as dst:
+                    dst.write(dest_array)
+                from datetime import datetime, timezone
+                self.cache.metadata["entries"][cache_key] = {
+                    "category": "local",
+                    "timestamp": datetime.now(
+                        timezone.utc,
+                    ).isoformat(),
+                    "ttl_days": None,
+                    "extension": "tif",
+                }
+                self.cache._save_metadata()
+                return dst_path
             else:
-                # No cache provided (unlikely in this app), return None or raise
                 return None
 
         except Exception as e:
