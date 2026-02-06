@@ -3,10 +3,11 @@ Canonical Bounding Box and Coordinate Management for Deep Earth Harmonizer.
 """
 
 import math
-import pyproj
 from dataclasses import dataclass
-from typing import Optional, Tuple, List, Any, cast
-from shapely.geometry import box, Polygon
+from typing import Any, List, Optional, Tuple, cast
+
+import pyproj
+from shapely.geometry import Polygon, box
 
 @dataclass(frozen=True)
 class RegionContext:

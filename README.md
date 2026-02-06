@@ -9,7 +9,7 @@ Deep Earth Harmonizer fetches and fuses data from multiple geospatial sources in
 - **SRTM Elevation** - 30m resolution digital elevation from OpenTopography
 - **Satellite Embeddings** - 64-band ML embeddings from Google Earth Engine
 - **Earth Engine Datasets** - Curated list of scientific datasets (Sentinel-2, LandCover, etc.)
-- **Local Data Ingestion** - Ingest arbitary local raster files
+- **Local Data Ingestion** - Ingest arbitrary local raster files
 - **OSM Vector Data** - Roads, buildings, waterways from OpenStreetMap
 
 All sources are harmonized to a common grid and injected as Houdini heightfield layers with per-point attributes.
@@ -20,6 +20,7 @@ All sources are harmonized to a common grid and injected as Houdini heightfield 
 - **Smart Caching** - Results cached locally to avoid redundant API calls
 - **Fail-Graceful** - Missing data sources don't block the pipeline
 - **Houdini Integration** - Native HDA with button-click workflow
+- **MCP Tools** - Claude agent integration via `deep_earth_list_datasets` and `deep_earth_fetch_region`
 
 ## Quick Install
 
@@ -47,7 +48,7 @@ See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a complete walkthrough.
 
 
 - Python 3.9+
-- Houdini 21.0+ (for HDA)
+- Houdini 21.0+ (for HDA integration)
 - Google Earth Engine service account
 - OpenTopography API key
 

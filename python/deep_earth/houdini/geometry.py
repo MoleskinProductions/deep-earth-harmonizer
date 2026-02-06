@@ -1,8 +1,10 @@
+from typing import Any, Dict, Optional
+
 import numpy as np
-from typing import Any, Optional, Dict
-from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
-from deep_earth.region import RegionContext
+
 from deep_earth.harmonize import Harmonizer
+from deep_earth.houdini.visualization import apply_biome_colors, compute_pca_colors
+from deep_earth.region import RegionContext
 
 def inject_heightfield(
     geo: Any, 

@@ -1,16 +1,17 @@
-import os
-import numpy as np
 import logging
-from typing import Any, Optional, Union, Dict
+import os
+from typing import Any, Dict, Optional, Union
+
+import matplotlib
+import numpy as np
 
 # Use non-interactive backend when no display is available or when
 # saving to file, so preview works in CI / headless servers.
-import matplotlib
 if os.environ.get("DISPLAY") is None and os.environ.get("WAYLAND_DISPLAY") is None:
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from deep_earth.houdini.visualization import compute_pca_colors, apply_biome_colors
+from deep_earth.houdini.visualization import apply_biome_colors, compute_pca_colors
 
 logger = logging.getLogger(__name__)
 

@@ -1,19 +1,20 @@
 import hashlib
 import json
+import logging
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
 import aiohttp
 import numpy as np
 import pyproj
-import logging
-from typing import Any, Union, Dict, List, Optional, Tuple, cast
-from shapely.geometry import LineString, Polygon, Point
-from shapely.ops import transform
 from rasterio.features import rasterize
 from scipy.ndimage import distance_transform_edt
+from shapely.geometry import LineString, Point, Polygon
+from shapely.ops import transform
 
-from deep_earth.region import RegionContext
-from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.cache import CacheManager
 from deep_earth.config import Config
+from deep_earth.providers.base import DataProviderAdapter
+from deep_earth.region import RegionContext
 from deep_earth.retry import fetch_with_retry
 
 logger = logging.getLogger(__name__)

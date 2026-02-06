@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Dict, Optional
+from typing import Any, Dict, Optional, Union
+
 import numpy as np
+
 from deep_earth.region import RegionContext
 
 class DataProviderAdapter(ABC):

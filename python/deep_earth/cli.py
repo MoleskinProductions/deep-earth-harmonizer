@@ -12,10 +12,10 @@ from deep_earth.credentials import CredentialsManager
 from deep_earth.logging_config import setup_logging
 from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.providers.earth_engine import EarthEngineAdapter
-from deep_earth.region import RegionContext
 from deep_earth.providers.local import LocalFileAdapter
 from deep_earth.providers.osm import OverpassAdapter
 from deep_earth.providers.srtm import SRTMAdapter
+from deep_earth.region import RegionContext
 
 logger = logging.getLogger(__name__)
 

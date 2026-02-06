@@ -1,15 +1,16 @@
 import logging
+from typing import Any, Dict, Optional, Union
+
 import aiohttp
 import numpy as np
 import rasterio
-from typing import Any, Union, Dict, Optional
-from rasterio.warp import calculate_default_transform, reproject, Resampling
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 
+from deep_earth.cache import CacheManager
+from deep_earth.credentials import CredentialsManager
+from deep_earth.providers.base import DataProviderAdapter
 from deep_earth.region import RegionContext
 from deep_earth.retry import fetch_with_retry
-from deep_earth.credentials import CredentialsManager
-from deep_earth.cache import CacheManager
-from .base import DataProviderAdapter
 
 logger = logging.getLogger(__name__)
 

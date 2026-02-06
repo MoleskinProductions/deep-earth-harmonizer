@@ -1,7 +1,8 @@
-import numpy as np
-from scipy.ndimage import sobel, laplace, uniform_filter, generic_filter
 import logging
 from typing import Any, cast
+
+import numpy as np
+from scipy.ndimage import sobel, laplace, uniform_filter, generic_filter
 
 logger = logging.getLogger(__name__)
 

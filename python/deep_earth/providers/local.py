@@ -1,16 +1,17 @@
-import os
 import glob
 import logging
+import os
+import shutil
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+import numpy as np
 import rasterio
 import rasterio.warp
-import numpy as np
-import shutil
-from typing import Any, Union, Dict, Optional, List
-from pathlib import Path
 
-from deep_earth.region import RegionContext
 from deep_earth.cache import CacheManager
-from .base import DataProviderAdapter
+from deep_earth.providers.base import DataProviderAdapter
+from deep_earth.region import RegionContext
 
 logger = logging.getLogger(__name__)
 

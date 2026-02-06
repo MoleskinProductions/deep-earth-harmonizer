@@ -1,6 +1,7 @@
+from typing import Dict, List, Optional, cast
+
 import numpy as np
 from sklearn.decomposition import PCA
-from typing import Dict, List, Optional, cast
 
 def compute_pca_colors(embeddings: np.ndarray) -> np.ndarray:
     """
