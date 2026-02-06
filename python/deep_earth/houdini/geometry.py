@@ -36,11 +36,12 @@ def inject_heightfield(
     # For simplicity in this foundation track, we'll assume the node creates 
     # the primitive and we just set its values.
     
-    height_volumes = [v for v in geo.primitives() if v.type() == hou.primitiveType.Volume and v.name() == "height"]
+    _prims = geo.prims() if hasattr(geo, 'prims') else geo.primitives()
+    height_volumes = [v for v in _prims if v.type() == hou.primitiveType.Volume and v.name() == "height"]
     if not height_volumes:
         # Create height volume if it doesn't exist
         # This part usually happens in the SOP node setup, but we include it for completeness
-        height_volume = geo.createVolume(harmonizer.width, harmonizer.height)
+        height_volume = geo.createVolume(harmonizer.width, harmonizer.height, 1)
         height_volume.setName("height")
     else:
         height_volume = height_volumes[0]
@@ -53,7 +54,10 @@ def inject_heightfield(
     # Option B: Point Attribute (as recommended in plan)
     # 3. Create Points at UTM grid locations
     # We create a point per grid cell to store embeddings and other attributes
-    geo.clearPoints()
+    if hasattr(geo, 'clearPoints'):
+        geo.clearPoints()
+    else:
+        geo.clear()
     
     # Generate grid of column and row indices
     cols, rows = np.meshgrid(np.arange(harmonizer.width), np.arange(harmonizer.height))

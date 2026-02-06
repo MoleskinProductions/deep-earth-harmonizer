@@ -36,3 +36,11 @@ class Config:
                 os.makedirs(self.cache_path)
             except OSError as e:
                 logger.error(f"Failed to create cache directory {self.cache_path}: {e}")
+
+        # Quality weights for data harmony scoring
+        self.quality_weights = {
+            "dem_only": 0.25,
+            "dem_plus_osm": 0.5,
+            "dem_plus_embed": 0.75,
+            "all": 1.0
+        }

@@ -28,6 +28,19 @@ class EarthEngineAdapter(DataProviderAdapter):
     DEM/OSM-only pipelines can continue when GEE is unavailable.
     """
 
+    @staticmethod
+    def require_ee(func):
+        """Decorator to ensure Earth Engine is initialized before calling a method."""
+        def wrapper(self, *args, **kwargs):
+            if not self._ensure_initialized():
+                logger.warning(
+                    f"Skipping {func.__name__} — initialization failed: "
+                    f"{self._init_error}"
+                )
+                return None if func.__name__ == 'fetch' else False
+            return func(self, *args, **kwargs)
+        return wrapper
+
     def __init__(self, credentials: CredentialsManager, cache: CacheManager):
         """
         Initialize the Earth Engine adapter.
@@ -71,15 +84,32 @@ class EarthEngineAdapter(DataProviderAdapter):
             logger.warning(self._init_error)
             return False
 
-    def get_cache_key(self, bbox: RegionContext, resolution: float, year: int = 2023) -> str:
-        """Generates a unique cache key for GEE embeddings."""
-        return f"gee_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}_{year}"
+    @staticmethod
+    def get_available_datasets() -> list[Dict[str, str]]:
+        """Returns a list of curated Earth Engine datasets."""
+        return [
+            {"id": "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL", "label": "Google Satellite Embeddings (64D)", "type": "embedding"},
+            {"id": "COPERNICUS/S2_SR_HARMONIZED", "label": "Sentinel-2 (10m Optical)", "type": "image"},
+            {"id": "LANDSAT/LC09/C02/T1_L2", "label": "Landsat 9 (30m Optical)", "type": "image"},
+            {"id": "GOOGLE/DYNAMICWORLD/V1", "label": "Dynamic World (LULC Probabilities)", "type": "image"},
+            {"id": "ESA/WorldCover/v100", "label": "ESA WorldCover (10m Land Cover)", "type": "image"},
+            {"id": "NASA/NASADEM_HGT/001", "label": "NASADEM (30m Elevation)", "type": "image"},
+            {"id": "JAXA/ALOS/AW3D30/V2_2", "label": "ALOS World 3D (30m DSM)", "type": "image"},
+            {"id": "ECMWF/ERA5_LAND/HOURLY", "label": "ERA5 Land (Climate)", "type": "image"},
+            {"id": "MODIS/006/MCD12Q1", "label": "MODIS Land Cover (500m)", "type": "image"},
+            {"id": "UMD/hansen/global_forest_change_2023_v1_11", "label": "Global Forest Change", "type": "image"},
+            {"id": "USGS/SRTMGL1_003", "label": "USGS SRTM (30m Elevation)", "type": "image"},
+        ]
 
+    def get_cache_key(self, bbox: RegionContext, resolution: float, year: int = 2023, asset_id: str = "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL") -> str:
+        """Generates a unique cache key for GEE embeddings."""
+        safe_asset = asset_id.replace("/", "_").replace(":", "_")
+        return f"gee_{safe_asset}_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}_{year}"
+
+    @EarthEngineAdapter.require_ee
     def validate_credentials(self) -> bool:
         """Validates GEE access."""
         try:
-            if not self._ensure_initialized():
-                return False
             # Check for a known asset
             ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").limit(1).getInfo() # type: ignore
             return True
@@ -87,23 +117,22 @@ class EarthEngineAdapter(DataProviderAdapter):
             logger.warning(f"Earth Engine credential validation failed: {e}")
             return False
 
-    async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023) -> Optional[str]:
+    @EarthEngineAdapter.require_ee
+    async def fetch(self, bbox: RegionContext, resolution: float, year: int = 2023, asset_id: str = "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL") -> Optional[str]:
         """
-        Fetches GEE embeddings and returns the path to the cached GeoTIFF.
+        Fetches GEE data and returns the path to the cached GeoTIFF.
 
         Returns None (instead of raising) when initialization fails or
         data cannot be retrieved, allowing the pipeline to continue with
         degraded data quality.
         """
-        if not self._ensure_initialized():
-            logger.warning(
-                f"Skipping GEE fetch — initialization failed: "
-                f"{self._init_error}"
-            )
-            return None
-
-        logger.info(f"Fetching EarthEngine embeddings for bbox {bbox} at resolution {resolution}, year {year}")
-        cache_key = self.get_cache_key(bbox, resolution, year)
+        # Decorator handles initialization check now via require_ee? 
+        # Actually I need to apply it to the method definition not inside.
+        # But wait, I am replacing the method body here. I should have replaced the definition line to add @require_ee
+        # I will do that in a separate replacement chunk.
+        
+        logger.info(f"Fetching EarthEngine data ({asset_id}) for bbox {bbox} at resolution {resolution}, year {year}")
+        cache_key = self.get_cache_key(bbox, resolution, year, asset_id)
 
         if self.cache.exists(cache_key, category="embeddings"):
             logger.debug(f"Cache hit for {cache_key}")
@@ -116,16 +145,25 @@ class EarthEngineAdapter(DataProviderAdapter):
             # Define geometry
             region = ee.Geometry.Rectangle([bbox.lon_min, bbox.lat_min, bbox.lon_max, bbox.lat_max]) # type: ignore
 
-            # Load embedding collection and filter by year
+            # Handle different collection types
             start_date = f"{year}-01-01"
             end_date = f"{year}-12-31"
-            collection = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterDate(start_date, end_date) # type: ignore
 
-            if collection.size().getInfo() == 0:
-                logger.warning(f"No embeddings found for year {year}")
-                return None
-
-            image = collection.mosaic().clip(region)
+            # Determine if it's an ImageCollection or Image based on basic heuristics or try/except
+            # For simplicity, we assume ImageCollection for most timestamps, but some assets are single Images.
+            # However, the curated list are mostly collections.
+            # A more robust way is to check the asset type or just try to filter.
+            
+            try:
+                collection = ee.ImageCollection(asset_id).filterDate(start_date, end_date) # type: ignore
+                if collection.size().getInfo() == 0:
+                     logger.warning(f"No data found for {asset_id} in year {year}")
+                     return None
+                image = collection.mosaic().clip(region)
+            except Exception:
+                # Fallback if it's a single image or non-temporal
+                logger.debug(f"Assuming {asset_id} is a single image or non-filtered collection")
+                image = ee.Image(asset_id).clip(region)
 
             # Reproject to UTM
             dst_crs = f"EPSG:{bbox.utm_epsg}"

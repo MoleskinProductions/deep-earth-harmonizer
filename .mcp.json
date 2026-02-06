@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "houdini": {
+      "command": "python",
+      "args": ["-m", "houdini_mcp.server"],
+      "cwd": "./houdini-mcp",
+      "env": {
+        "HOUDINI_BRIDGE_URL": "http://127.0.0.1:8765",
+        "HOUDINI_TIMEOUT": "30"
+      }
+    }
+  }
+}

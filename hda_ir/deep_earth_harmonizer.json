@@ -3,31 +3,41 @@
   "houdini_version": "21.0",
   "context": "Sop",
   "parent_path": "/obj/geo1",
-
   "hda_definition": {
-    "type_name": "mk.pv::deep_earth::1.0",
+    "type_name": "mk.pv::deep_earth::1.1",
     "label": "Deep Earth Harmonizer",
     "icon": "SOP_heightfield",
     "min_inputs": 0,
     "max_inputs": 0,
-    "otl_path": "otls/sop_mk.pv.deep_earth.1.0.hdalc",
-
+    "otl_path": "otls/sop_mk.pv.deep_earth.1.1.hdalc",
     "parameters": [
       {
         "name": "lat_range",
         "label": "Latitude Range",
         "type": "float",
         "size": 2,
-        "default": [44.97, 44.98],
-        "range": {"min": -90.0, "max": 90.0}
+        "default": [
+          44.97,
+          44.98
+        ],
+        "range": {
+          "min": -90.0,
+          "max": 90.0
+        }
       },
       {
         "name": "lon_range",
         "label": "Longitude Range",
         "type": "float",
         "size": 2,
-        "default": [-93.27, -93.26],
-        "range": {"min": -180.0, "max": 180.0}
+        "default": [
+          -93.27,
+          -93.26
+        ],
+        "range": {
+          "min": -180.0,
+          "max": 180.0
+        }
       },
       {
         "name": "resolution",
@@ -35,7 +45,10 @@
         "type": "float",
         "size": 1,
         "default": 10.0,
-        "range": {"min": 1.0, "max": 1000.0}
+        "range": {
+          "min": 1.0,
+          "max": 1000.0
+        }
       },
       {
         "name": "year",
@@ -43,7 +56,68 @@
         "type": "int",
         "size": 1,
         "default": 2024,
-        "range": {"min": 2015, "max": 2030}
+        "range": {
+          "min": 2015,
+          "max": 2030
+        }
+      },
+      {
+        "name": "dataset_id",
+        "label": "EE Dataset",
+        "type": "menu",
+        "default": "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL",
+        "menu_items": [
+          {
+            "token": "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL",
+            "label": "Google Satellite Embeddings (64D)"
+          },
+          {
+            "token": "COPERNICUS/S2_SR_HARMONIZED",
+            "label": "Sentinel-2 (10m Optical)"
+          },
+          {
+            "token": "LANDSAT/LC09/C02/T1_L2",
+            "label": "Landsat 9 (30m Optical)"
+          },
+          {
+            "token": "GOOGLE/DYNAMICWORLD/V1",
+            "label": "Dynamic World (LULC Probabilities)"
+          },
+          {
+            "token": "ESA/WorldCover/v100",
+            "label": "ESA WorldCover (10m Land Cover)"
+          },
+          {
+            "token": "NASA/NASADEM_HGT/001",
+            "label": "NASADEM (30m Elevation)"
+          },
+          {
+            "token": "JAXA/ALOS/AW3D30/V2_2",
+            "label": "ALOS World 3D (30m DSM)"
+          },
+          {
+            "token": "ECMWF/ERA5_LAND/HOURLY",
+            "label": "ERA5 Land (Climate)"
+          },
+          {
+            "token": "MODIS/006/MCD12Q1",
+            "label": "MODIS Land Cover (500m)"
+          },
+          {
+            "token": "UMD/hansen/global_forest_change_2023_v1_11",
+            "label": "Global Forest Change"
+          },
+          {
+            "token": "USGS/SRTMGL1_003",
+            "label": "USGS SRTM (30m Elevation)"
+          }
+        ]
+      },
+      {
+        "name": "local_dir",
+        "label": "Local Source Directory",
+        "type": "string",
+        "default": ""
       },
       {
         "name": "viz_mode",
@@ -51,9 +125,22 @@
         "type": "menu",
         "default": "none",
         "menu_items": [
-          {"token": "none", "label": "None"},
-          {"token": "pca", "label": "PCA"},
-          {"token": "biome", "label": "Biome"}
+          {
+            "token": "none",
+            "label": "None"
+          },
+          {
+            "token": "pca",
+            "label": "PCA"
+          },
+          {
+            "token": "biome",
+            "label": "Biome"
+          },
+          {
+            "token": "local",
+            "label": "Local Data"
+          }
         ]
       },
       {
@@ -69,53 +156,58 @@
         "default": "$HOUDINI_USER_PREF_DIR/deep_earth_cache"
       }
     ],
-
     "python_module": {
       "description": "HDA Python module for button callbacks",
       "entry_point": "hou.phm()",
       "callback_pattern": "kwargs['node']"
     }
   },
-
   "nodes": [
     {
       "name": "python1",
       "type": "python",
-      "position": {"x": 0.0, "y": 0.0},
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
       "parameters": [
         {
           "name": "python",
-          "value": "import hou\nimport asyncio\nimport numpy as np\nimport logging\nfrom deep_earth.async_utils import run_async\nfrom deep_earth.region import RegionContext\nfrom deep_earth.harmonize import Harmonizer\nfrom deep_earth.houdini.geometry import inject_heightfield\nfrom deep_earth.providers.srtm import SRTMAdapter\nfrom deep_earth.providers.earth_engine import EarthEngineAdapter\nfrom deep_earth.providers.osm import OverpassAdapter\nfrom deep_earth.credentials import CredentialsManager\nfrom deep_earth.cache import CacheManager\nfrom deep_earth.config import Config\n\nlogger = logging.getLogger(\"deep_earth.hda\")\n\nnode = hou.pwd()\nhda = node.parent()\n\n# 1. Setup Context\nlat_min, lat_max = hda.parmTuple(\"lat_range\").eval()\nlon_min, lon_max = hda.parmTuple(\"lon_range\").eval()\nres = hda.parm(\"resolution\").eval()\nyear = hda.parm(\"year\").eval()\nviz_mode_str = hda.parm(\"viz_mode\").evalAsString().lower()\nviz_mode = viz_mode_str if viz_mode_str != \"none\" else None\n\nregion = RegionContext(lat_min, lat_max, lon_min, lon_max)\nharmonizer = Harmonizer(region, res)\nconfig = Config()\ncache = CacheManager(config.cache_path)\ncreds = CredentialsManager()\n\n# Update Credential Status on UI\nvalid_map = creds.validate()\nhda.setUserData(\"ee_status\", \"Valid\" if valid_map[\"earth_engine\"] else \"Invalid/Missing\")\nhda.setUserData(\"ot_status\", \"Valid\" if valid_map[\"opentopography\"] else \"Invalid/Missing\")\n\n# 2. Adapters\nsrtm_a = SRTMAdapter(creds, cache)\ngee_a = EarthEngineAdapter(creds, cache)\nosm_a = OverpassAdapter(cache_dir=config.cache_path)\n\n# 3. Pull from Cache (Fast)\nsrtm_path, gee_path, osm_json = run_async(asyncio.gather(\n    srtm_a.fetch(region, 30),\n    gee_a.fetch(region, res, year),\n    osm_a.fetch(region, res),\n    return_exceptions=True\n))\n\n# 4. Harmonize (with structured result handling)\nheight_grid, srtm_result = harmonizer.process_fetch_result(srtm_path, \"srtm\", bands=1)\nif height_grid is None:\n    height_grid = np.zeros((harmonizer.height, harmonizer.width), dtype=np.float32)\n\nembed_grid, gee_result = harmonizer.process_fetch_result(\n    gee_path, \"gee\", bands=list(range(1, 65))\n)\nif embed_grid is None:\n    embed_grid = np.zeros((64, harmonizer.height, harmonizer.width), dtype=np.float32)\n\nif not isinstance(osm_json, Exception) and osm_json:\n    osm_layers = osm_a.transform_to_grid(osm_json['elements'], harmonizer)\n    harmonizer.add_layers(osm_layers)\n\n# 5. Data Quality\nquality = harmonizer.compute_quality_layer(\n    height_grid if srtm_result.ok else None,\n    embed_grid if gee_result.ok else None\n)\nharmonizer.add_layers({\"data_quality\": quality})\n\n# 6. Inject Geometry\ngeo = node.geometry()\ninject_heightfield(geo, region, harmonizer, height_grid, embed_grid, viz_mode=viz_mode)"
+          "value": "import hou\nimport asyncio\nimport numpy as np\nimport logging\nfrom deep_earth.async_utils import run_async\nfrom deep_earth.region import RegionContext\nfrom deep_earth.harmonize import Harmonizer\nfrom deep_earth.houdini.geometry import inject_heightfield\nfrom deep_earth.providers.srtm import SRTMAdapter\nfrom deep_earth.providers.earth_engine import EarthEngineAdapter\nfrom deep_earth.providers.osm import OverpassAdapter\nfrom deep_earth.providers.local import LocalFileAdapter\nfrom deep_earth.credentials import CredentialsManager\nfrom deep_earth.cache import CacheManager\nfrom deep_earth.config import Config\n\nlogger = logging.getLogger(\"deep_earth.hda\")\n\nnode = hou.pwd()\nhda = node.parent()\n\n# 1. Setup Context\nlat_min, lat_max = hda.parmTuple(\"lat_range\").eval()\nlon_min, lon_max = hda.parmTuple(\"lon_range\").eval()\nres = hda.parm(\"resolution\").eval()\nyear = hda.parm(\"year\").eval()\ndataset_id = hda.parm(\"dataset_id\").eval()\nlocal_dir = hda.parm(\"local_dir\").eval()\nif not local_dir:\n    local_dir = None\n\nviz_mode_str = hda.parm(\"viz_mode\").evalAsString().lower()\nviz_mode = viz_mode_str if viz_mode_str != \"none\" else None\n\nregion = RegionContext(lat_min, lat_max, lon_min, lon_max)\nharmonizer = Harmonizer(region, res)\nconfig = Config()\ncache = CacheManager(config.cache_path)\ncreds = CredentialsManager()\n\n# Update Credential Status on UI\nvalid_map = creds.validate()\nhda.setUserData(\"ee_status\", \"Valid\" if valid_map[\"earth_engine\"] else \"Invalid/Missing\")\nhda.setUserData(\"ot_status\", \"Valid\" if valid_map[\"opentopography\"] else \"Invalid/Missing\")\n\n# 2. Adapters\nsrtm_a = SRTMAdapter(creds, cache)\ngee_a = EarthEngineAdapter(creds, cache)\nosm_a = OverpassAdapter(cache_dir=config.cache_path)\nlocal_a = LocalFileAdapter(cache)\n\n# 3. Pull from Cache (Fast)\nsrtm_path, gee_path, osm_json, local_path = run_async(asyncio.gather(\n    srtm_a.fetch(region, 30),\n    gee_a.fetch(region, res, year, dataset_id),\n    osm_a.fetch(region, res),\n    local_a.fetch(region, res, local_dir) if local_dir else asyncio.sleep(0, result=None),\n    return_exceptions=True\n))\n\n# 4. Harmonize (with structured result handling)\nheight_grid, srtm_result = harmonizer.process_fetch_result(srtm_path, \"srtm\", bands=1)\nif height_grid is None:\n    height_grid = np.zeros((harmonizer.height, harmonizer.width), dtype=np.float32)\n\nembed_grid, gee_result = harmonizer.process_fetch_result(\n    gee_path, \"gee\", bands=None if \"EMBEDDING\" not in dataset_id else list(range(1, 65))\n)\nif embed_grid is None:\n    # Default to missing 64d or 1d?\n    # For geometry injection, we assume embeddings are 64d usually.\n    # But if we use a different dataset, it might be 3 bands (RGB) or 1 band.\n    # We should adapt. For now, zero-fill 64 as safe fallback.\n    embed_grid = np.zeros((64, harmonizer.height, harmonizer.width), dtype=np.float32)\n\nif not isinstance(osm_json, Exception) and osm_json:\n    osm_layers = osm_a.transform_to_grid(osm_json['elements'], harmonizer)\n    harmonizer.add_layers(osm_layers)\n\nif local_path and not isinstance(local_path, Exception):\n    local_grid, local_res = harmonizer.process_fetch_result(local_path, \"local\", bands=None)\n    if local_grid is not None:\n         harmonizer.add_layers({\"local\": local_grid})\n\n# 5. Data Quality\nquality = harmonizer.compute_quality_layer(\n    height_grid if srtm_result.ok else None,\n    embed_grid if gee_result.ok else None\n)\nharmonizer.add_layers({\"data_quality\": quality})\n\n# 6. Inject Geometry\ngeo = node.geometry()\ninject_heightfield(geo, region, harmonizer, height_grid, embed_grid, viz_mode=viz_mode)"
         }
       ],
       "display_flag": true,
       "render_flag": true
     }
   ],
-
   "connections": [],
-
   "network_boxes": [],
-
   "sticky_notes": [
     {
       "name": "note1",
-      "text": "Deep Earth Harmonizer\n\nFetches and harmonizes:\n- SRTM elevation (30m)\n- GEE embeddings (64-band)\n- OSM vector data\n\nClick 'Fetch Data' to download.",
-      "position": {"x": 3.0, "y": 0.0},
-      "size": [4.0, 3.0],
-      "color": [0.8, 0.9, 0.8]
+      "text": "Deep Earth Harmonizer\n\nFetches and harmonizes:\n- SRTM elevation (30m)\n- Earth Engine Datasets (Satellite/LULC)\n- OSM vector data\n- Local Raster Data\n\nClick 'Fetch Data' to download.",
+      "position": {
+        "x": 3.0,
+        "y": 0.0
+      },
+      "size": [
+        4.0,
+        3.0
+      ],
+      "color": [
+        0.8,
+        0.9,
+        0.8
+      ]
     }
   ],
-
   "source": {
     "type": "hda_spec",
     "project": "deep_earth_harmonizer",
-    "version": "0.2.0",
+    "version": "1.1.0",
     "spec_file": "houdini_hda_spec.md"
   },
-
   "extraction_timestamp": "2026-01-23T02:30:00Z",
-
   "dependencies": {
     "python_packages": [
       "pyproj>=3.4",
@@ -133,19 +225,44 @@
     ],
     "houdini_package": "deep_earth.json"
   },
-
   "output_attributes": {
     "volumes": [
-      {"name": "height", "description": "Elevation in meters"},
-      {"name": "embed_0-63", "description": "64-band satellite embeddings"},
-      {"name": "road_distance", "description": "Distance to nearest road"},
-      {"name": "building_mask", "description": "Building footprint coverage"},
-      {"name": "water_mask", "description": "Water body coverage"},
-      {"name": "data_quality", "description": "Confidence score (0-1)"}
+      {
+        "name": "height",
+        "description": "Elevation in meters"
+      },
+      {
+        "name": "embed_0-63",
+        "description": "64-band satellite embeddings"
+      },
+      {
+        "name": "road_distance",
+        "description": "Distance to nearest road"
+      },
+      {
+        "name": "building_mask",
+        "description": "Building footprint coverage"
+      },
+      {
+        "name": "water_mask",
+        "description": "Water body coverage"
+      },
+      {
+        "name": "data_quality",
+        "description": "Confidence score (0-1)"
+      }
     ],
     "point_attributes": [
-      {"name": "Cd", "type": "vector3", "condition": "viz_mode != none"},
-      {"name": "biome_id", "type": "int", "condition": "viz_mode == biome"}
+      {
+        "name": "Cd",
+        "type": "vector3",
+        "condition": "viz_mode != none"
+      },
+      {
+        "name": "biome_id",
+        "type": "int",
+        "condition": "viz_mode == biome"
+      }
     ]
   }
 }

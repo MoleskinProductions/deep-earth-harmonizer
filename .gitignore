@@ -17,3 +17,6 @@ credentials.json
 .env
 .env.*
 deep_earth.log
+deep_earth_cache/
+.pytest_cache/
+.mypy_cache/

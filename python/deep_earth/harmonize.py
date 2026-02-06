@@ -1,10 +1,12 @@
 import logging
-import numpy as np
-import rasterio
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Union, List, Any, Tuple
-from rasterio.warp import reproject, Resampling
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import rasterio
+from rasterio.warp import Resampling, reproject
+
 from deep_earth.region import RegionContext
 
 logger = logging.getLogger(__name__)
@@ -68,30 +70,38 @@ class Harmonizer:
         
         self.layers: Dict[str, np.ndarray] = {}
 
-    def resample(self, src_path: str, bands: Union[int, List[int]] = 1) -> np.ndarray:
+    def resample(self, src_path: str, bands: Optional[Union[int, List[int]]] = None) -> np.ndarray:
         """
         Resamples the given source GeoTIFF to the master grid.
 
         Args:
             src_path: Path to the source GeoTIFF file.
-            bands: Single band index or list of band indices to read.
+            bands: Single band index, list of band indices, or None for all bands.
 
         Returns:
             NumPy array of the resampled data.
         """
-        dst_shape: Union[Tuple[int, int], Tuple[int, int, int]]
-        if isinstance(bands, int):
-            band_count = 1
-            dst_shape = (self.height, self.width)
-        else:
-            band_count = len(bands)
-            dst_shape = (band_count, self.height, self.width)
-            
         with rasterio.open(src_path) as src:
+            if bands is None:
+                # Auto-detect all bands
+                band_indices = list(range(1, src.count + 1))
+                band_count = src.count
+            elif isinstance(bands, int):
+                band_indices = [bands]
+                band_count = 1
+            else:
+                band_indices = bands
+                band_count = len(bands)
+
+            if band_count == 1:
+                dst_shape = (self.height, self.width)
+            else:
+                dst_shape = (band_count, self.height, self.width)
+                
             destination = np.zeros(dst_shape, src.dtypes[0])
             
             reproject(
-                source=rasterio.band(src, bands),
+                source=rasterio.band(src, band_indices),
                 destination=destination,
                 src_transform=src.transform,
                 src_crs=src.crs,
@@ -119,7 +129,7 @@ class Harmonizer:
         self,
         result: Any,
         provider_name: str,
-        bands: Union[int, List[int]] = 1,
+        bands: Optional[Union[int, List[int]]] = None,
     ) -> Tuple[Optional[np.ndarray], FetchResult]:
         """Safely resample a provider result into a grid.
 
@@ -157,20 +167,11 @@ class Harmonizer:
     def compute_quality_layer(self, height_grid: Optional[np.ndarray] = None, embed_grid: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Computes a data quality score (0.0 - 1.0) for each grid cell.
-        
-        Scoring:
-        - DEM only: 0.25
-        - DEM + Embeddings: 0.75
-        - DEM + OSM: 0.5
-        - All: 1.0
-
-        Args:
-            height_grid: Optional elevation grid.
-            embed_grid: Optional embedding grid.
-
-        Returns:
-            NumPy array (float32) of quality scores.
+        Uses weights defined in Config.
         """
+        from deep_earth.config import Config
+        weights = Config().quality_weights
+
         quality = np.zeros((self.height, self.width), dtype=np.float32)
         
         has_dem = height_grid is not None
@@ -178,12 +179,49 @@ class Harmonizer:
         has_osm = "highway" in self.layers or "landuse" in self.layers
         
         if has_dem:
-            quality += 0.25
+            quality += weights.get("dem_only", 0.25)
             
         if has_embed:
-            quality += 0.5
+            # Note: Logic here is additive, original was simplistic.
+            # If we want exactly the weights:
+            # "dem_plus_embed": 0.75 means DEM (0.25) + Embed (0.5).
+            # So adding 0.5 for embed is correct if base is 0.25.
+            # But relying on specific additive keys being "dem_plus_..." is slightly confusing if we just add.
+            # Let's assume the weights represent the incremental value or total state?
+            # Original code:
+            # if has_dem: quality += 0.25
+            # if has_embed: quality += 0.5
+            # if has_osm: quality += 0.25
+            # Total = 1.0
             
+            # If Config says "dem_plus_embed": 0.75, it implies the SUM.
+            # So we should probably derive increments or change logic to check combination.
+            # For simplicity in this refactor, I will stick to additive logic but use keys that implied increments if possible,
+            # OR just re-interpret the keys.
+            
+            # Let's define additive weights for simplicity.
+            # dem_weight = 0.25
+            # embed_weight = 0.5
+            # osm_weight = 0.25
+            
+            # Using the config dict keys I created:
+            # "dem_only": 0.25 -> implies DEM contribution is 0.25
+            # "dem_plus_osm": 0.5 -> implies OSM contribution is 0.5 - 0.25 = 0.25
+            # "dem_plus_embed": 0.75 -> implies Embed contribution is 0.75 - 0.25 = 0.5
+            
+            # I will use that logic.
+            pass
+
+        quality_incr = 0.0
+        if has_dem:
+            quality_incr += weights.get("dem_only", 0.25)
         if has_osm:
-            quality += 0.25
+            # (dem + osm) - dem
+            quality_incr += (weights.get("dem_plus_osm", 0.5) - weights.get("dem_only", 0.25))
+        if has_embed:
+             # (dem + embed) - dem
+             quality_incr += (weights.get("dem_plus_embed", 0.75) - weights.get("dem_only", 0.25))
+        
+        quality += quality_incr
             
         return quality
