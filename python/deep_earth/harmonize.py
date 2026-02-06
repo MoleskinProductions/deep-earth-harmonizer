@@ -173,55 +173,24 @@ class Harmonizer:
         weights = Config().quality_weights
 
         quality = np.zeros((self.height, self.width), dtype=np.float32)
-        
+
         has_dem = height_grid is not None
         has_embed = embed_grid is not None
         has_osm = "highway" in self.layers or "landuse" in self.layers
-        
-        if has_dem:
-            quality += weights.get("dem_only", 0.25)
-            
-        if has_embed:
-            # Note: Logic here is additive, original was simplistic.
-            # If we want exactly the weights:
-            # "dem_plus_embed": 0.75 means DEM (0.25) + Embed (0.5).
-            # So adding 0.5 for embed is correct if base is 0.25.
-            # But relying on specific additive keys being "dem_plus_..." is slightly confusing if we just add.
-            # Let's assume the weights represent the incremental value or total state?
-            # Original code:
-            # if has_dem: quality += 0.25
-            # if has_embed: quality += 0.5
-            # if has_osm: quality += 0.25
-            # Total = 1.0
-            
-            # If Config says "dem_plus_embed": 0.75, it implies the SUM.
-            # So we should probably derive increments or change logic to check combination.
-            # For simplicity in this refactor, I will stick to additive logic but use keys that implied increments if possible,
-            # OR just re-interpret the keys.
-            
-            # Let's define additive weights for simplicity.
-            # dem_weight = 0.25
-            # embed_weight = 0.5
-            # osm_weight = 0.25
-            
-            # Using the config dict keys I created:
-            # "dem_only": 0.25 -> implies DEM contribution is 0.25
-            # "dem_plus_osm": 0.5 -> implies OSM contribution is 0.5 - 0.25 = 0.25
-            # "dem_plus_embed": 0.75 -> implies Embed contribution is 0.75 - 0.25 = 0.5
-            
-            # I will use that logic.
-            pass
 
-        quality_incr = 0.0
+        # Additive weights derived from config totals:
+        #   dem_only    = 0.25  -> DEM contributes 0.25
+        #   dem_plus_osm   = 0.50  -> OSM contributes 0.25
+        #   dem_plus_embed = 0.75  -> Embed contributes 0.50
+        dem_w = weights.get("dem_only", 0.25)
+        osm_w = weights.get("dem_plus_osm", 0.5) - dem_w
+        embed_w = weights.get("dem_plus_embed", 0.75) - dem_w
+
         if has_dem:
-            quality_incr += weights.get("dem_only", 0.25)
+            quality += dem_w
         if has_osm:
-            # (dem + osm) - dem
-            quality_incr += (weights.get("dem_plus_osm", 0.5) - weights.get("dem_only", 0.25))
+            quality += osm_w
         if has_embed:
-             # (dem + embed) - dem
-             quality_incr += (weights.get("dem_plus_embed", 0.75) - weights.get("dem_only", 0.25))
-        
-        quality += quality_incr
-            
+            quality += embed_w
+
         return quality

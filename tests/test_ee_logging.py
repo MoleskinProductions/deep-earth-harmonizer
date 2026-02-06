@@ -30,7 +30,7 @@ async def test_ee_logging_cache_hit(mock_credentials, mock_cache, coordinate_man
         with caplog.at_level(logging.DEBUG, logger="deep_earth.providers.earth_engine"):
             await adapter.fetch(coordinate_manager, resolution=10)
         
-        assert "Fetching EarthEngine embeddings" in caplog.text
+        assert "Fetching EarthEngine data" in caplog.text
         assert "Cache hit for" in caplog.text
 
 @pytest.mark.asyncio
