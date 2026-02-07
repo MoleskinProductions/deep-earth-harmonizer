@@ -49,6 +49,8 @@ Inside Houdini, the node type name is `mk.pv::deep_earth::1.0`.
 | `resolution` | Master Resolution (m) | Float | 10.0 |
 | `year` | Embedding Year | Int | 2024 |
 | `viz_mode` | Visualization Mode | Menu | None, PCA, Biome |
+| `dataset_id` | GEE Dataset ID | String | GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL |
+| `local_dir` | Local Raster Dir | String | (empty) |
 | `fetch` | Fetch Data | Button | |
 | `cache_path` | Cache Path | String | $HOUDINI_USER_PREF_DIR/deep_earth_cache |
 
@@ -58,138 +60,24 @@ Inside Houdini, the node type name is `mk.pv::deep_earth::1.0`.
 Used for the `fetch` button callback.
 
 The fetch button uses a callback script that accesses the node via `kwargs['node']`.
-This pattern is standard for HDA button callbacks.
+This pattern is standard for HDA button callbacks. The button **only populates the
+cache** — the internal Python SOP handles harmonization and geometry injection on cook.
 
-```python
-# Button callback script (executed via exec())
-# Note: kwargs['node'] provides the HDA node reference
-
-import hou
-import asyncio
-from deep_earth.async_utils import run_async
-from deep_earth.credentials import CredentialsManager
-from deep_earth.cache import CacheManager
-from deep_earth.config import Config
-from deep_earth.region import RegionContext
-from deep_earth.providers.srtm import SRTMAdapter
-from deep_earth.providers.earth_engine import EarthEngineAdapter
-from deep_earth.providers.osm import OverpassAdapter
-
-node = kwargs['node']  # HDA node reference from button callback
-lat_min, lat_max = node.parmTuple("lat_range").eval()
-lon_min, lon_max = node.parmTuple("lon_range").eval()
-resolution = node.parm("resolution").eval()
-year = node.parm("year").eval()
-
-region = RegionContext(lat_min, lat_max, lon_min, lon_max)
-config = Config()
-creds = CredentialsManager()
-cache = CacheManager(config.cache_path)
-
-srtm_a = SRTMAdapter(creds, cache)
-gee_a = EarthEngineAdapter(creds, cache)
-osm_a = OverpassAdapter(cache_dir=config.cache_path)
-
-async def fetch_all():
-    return await asyncio.gather(
-        srtm_a.fetch(region, 30),
-        gee_a.fetch(region, resolution, year),
-        osm_a.fetch(region, resolution),
-        return_exceptions=True
-    )
-
-with hou.InterruptableOperation("Fetching Earth Data", open_interrupt_dialog=True):
-    run_async(fetch_all())
-
-# Force cook the internal Python SOP to update geometry
-node.node("python1").cook(force=True)
-```
+See `scripts/hda_fetch.py` for the full callback implementation.
 
 ---
 
 ## Internal Python SOP (`python1`)
-This node lives inside the HDA subnet and performs the harmonization and geometry injection.
-The node is named `python1` (Houdini's default naming for Python SOPs).
+This node lives inside the HDA subnet and performs the harmonization and geometry
+injection. The node is named `python1` (Houdini's default naming for Python SOPs).
 
-```python
-import hou
-import asyncio
-import numpy as np
-import logging
-from deep_earth.async_utils import run_async
-from deep_earth.region import RegionContext
-from deep_earth.harmonize import Harmonizer
-from deep_earth.houdini.geometry import inject_heightfield
-from deep_earth.providers.srtm import SRTMAdapter
-from deep_earth.providers.earth_engine import EarthEngineAdapter
-from deep_earth.providers.osm import OverpassAdapter
-from deep_earth.credentials import CredentialsManager
-from deep_earth.cache import CacheManager
-from deep_earth.config import Config
+**Output:** A point cloud (not a heightfield volume). One point per grid cell with:
+- Position: X = UTM Easting, Y = Elevation, Z = UTM Northing
+- `height` (float) — elevation value (mirrors Y position)
+- `embedding` (float[64]) — satellite embedding bands
+- OSM layers as float/int/string point attributes
+- `data_quality` (float) — composite quality score
+- `Cd` (float[3]) — color, if visualization mode is enabled
 
-logger = logging.getLogger("deep_earth.hda")
-
-
-node = hou.pwd()
-hda = node.parent()
-
-# 1. Setup Context
-lat_min, lat_max = hda.parmTuple("lat_range").eval()
-lon_min, lon_max = hda.parmTuple("lon_range").eval()
-res = hda.parm("resolution").eval()
-year = hda.parm("year").eval()
-# Use evalAsString() for more robust menu handling
-viz_mode_str = hda.parm("viz_mode").evalAsString().lower()
-viz_mode = viz_mode_str if viz_mode_str != "none" else None
-
-region = RegionContext(lat_min, lat_max, lon_min, lon_max)
-harmonizer = Harmonizer(region, res)
-config = Config()
-cache = CacheManager(config.cache_path)
-creds = CredentialsManager()
-
-# Update Credential Status on UI
-valid_map = creds.validate()
-hda.setUserData("ee_status", "Valid" if valid_map["earth_engine"] else "Invalid/Missing")
-hda.setUserData("ot_status", "Valid" if valid_map["opentopography"] else "Invalid/Missing")
-
-# 2. Adapters
-srtm_a = SRTMAdapter(creds, cache)
-gee_a = EarthEngineAdapter(creds, cache)
-osm_a = OverpassAdapter(cache_dir=config.cache_path)
-
-# 3. Pull from Cache (Fast)
-# Using return_exceptions=True to avoid crashing if one source fails
-srtm_path, gee_path, osm_json = run_async(asyncio.gather(
-    srtm_a.fetch(region, 30),
-    gee_a.fetch(region, res, year),
-    osm_a.fetch(region, res),
-    return_exceptions=True
-))
-
-# 4. Harmonize (with structured result handling)
-height_grid, srtm_result = harmonizer.process_fetch_result(srtm_path, "srtm", bands=1)
-if height_grid is None:
-    height_grid = np.zeros((harmonizer.height, harmonizer.width), dtype=np.float32)
-
-embed_grid, gee_result = harmonizer.process_fetch_result(
-    gee_path, "gee", bands=list(range(1, 65))
-)
-if embed_grid is None:
-    embed_grid = np.zeros((64, harmonizer.height, harmonizer.width), dtype=np.float32)
-
-if not isinstance(osm_json, Exception) and osm_json:
-    osm_layers = osm_a.transform_to_grid(osm_json['elements'], harmonizer)
-    harmonizer.add_layers(osm_layers)
-
-# 5. Data Quality
-quality = harmonizer.compute_quality_layer(
-    height_grid if srtm_result.ok else None,
-    embed_grid if gee_result.ok else None
-)
-harmonizer.add_layers({"data_quality": quality})
-
-# 6. Inject Geometry
-geo = node.geometry()
-inject_heightfield(geo, region, harmonizer, height_grid, embed_grid, viz_mode=viz_mode)
-```
+The canonical source for this code is the HDA IR JSON at
+`hda_ir/deep_earth_harmonizer.json`.
