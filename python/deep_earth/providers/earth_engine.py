@@ -122,7 +122,7 @@ class EarthEngineAdapter(DataProviderAdapter):
     def get_cache_key(self, bbox: RegionContext, resolution: float, year: int = 2023, asset_id: str = "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL") -> str:
         """Generates a unique cache key for GEE embeddings."""
         safe_asset = asset_id.replace("/", "_").replace(":", "_")
-        return f"gee_{safe_asset}_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}_{year}"
+        return f"gee_{safe_asset}_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{int(resolution)}_{year}"
 
     @require_ee
     def validate_credentials(self) -> bool:

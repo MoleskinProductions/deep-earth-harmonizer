@@ -34,7 +34,7 @@ class SRTMAdapter(DataProviderAdapter):
 
     def get_cache_key(self, bbox: RegionContext, resolution: float) -> str:
         """Generates a unique cache key for SRTM data."""
-        return f"srtm_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{resolution}"
+        return f"srtm_{bbox.lat_min}_{bbox.lat_max}_{bbox.lon_min}_{bbox.lon_max}_{int(resolution)}"
 
     def validate_credentials(self) -> bool:
         """Checks if OpenTopography API key is present."""
